@@ -8,7 +8,7 @@ pipeline {
     }
     stage('clean') {
       steps {
-        sh 'make clean?texfile=master-thesis'
+        sh 'make clean texfile=master-thesis'
       }
     }
     stage('archive') {
