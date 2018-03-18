@@ -3,7 +3,7 @@ pipeline {
   stages {
     stage('latex') {
       steps {
-        sh 'make pdf compiler=xelatex?texfile=master-thesis'
+        sh 'make pdf compiler=xelatex texfile=master-thesis'
       }
     }
     stage('clean') {
