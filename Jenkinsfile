@@ -17,5 +17,10 @@ ${compiler} --shell-escape ${texfile}'''
         sh 'rm -f master-thesis.{ps,pdf,log,aux,out,dvi,bbl,blg}'
       }
     }
+    stage('archive') {
+      steps {
+        archiveArtifacts 'master-thesis.pdf'
+      }
+    }
   }
 }
