@@ -6,4 +6,4 @@ pdf:
 	
 	
 clean:
-	rm -f ${texfile}.{ps,pdf,log,aux,out,dvi,bbl,blg,toc,tdo}
+	rm -f ${texfile}.{ps,log,aux,out,dvi,bbl,blg,toc,tdo}
