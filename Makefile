@@ -1,6 +1,3 @@
-compiler=xelatex
-texfile=master-thesis
-
 pdf:
 	${compiler} --shell-escape ${texfile}
 	bibtex ${texfile}||true
