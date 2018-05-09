@@ -44,7 +44,7 @@
 
 \newtheorem{req}{REQ}
 \newtheorem{subreq}{REQ}[req]
-\newtheorem{subsubreq}{REQ}[req]
+\newtheorem{subsubreq}{REQ}[subreq]
 \AtBeginEnvironment{req}{\Needspace{5\baselineskip}}
 \setcounter{req}{0}
 
@@ -122,7 +122,9 @@ Christian K\"oher
 
 \subsection{Software Product Line Analyses}
 
-\subsection{KernelHaven - an Analysis Infrastructure}
+\subsection{KernelHaven - an Analysis Infrastructure}\label{kernelhaven}
+
+\todo{describe extension possiblities - plugins, preparation task etc.}
 
 \subsection{Objective for this Work}
 
@@ -177,7 +179,7 @@ Christian K\"oher
 
 \begin{subreq}[Implementation of Filters for Input-Files]
     \reqtable
-	{Must}  {Interview, Initial Description}
+	{Must}  {Interview, initial description}
 	{
 	The filters listed below must be implemented (see REQ \ref{req:optimization}):
 	\begin{itemize}
@@ -194,9 +196,9 @@ Christian K\"oher
 
 \begin{subreq}[Implementation of Effect-Filters for Input-Files]
     \reqtable
-	{May}  {Interview, Initial Description}
+	{May}  {Interview, initial description}
 	{
-	Of the options listed below must be implemented \cite{req:optimization}:
+	The filters listed below may be implemented:
 	\begin{itemize}
 		\item \texttt{change-effect} \\
 		work with files that were modified and files that were indirectly affected by the change (eg. through includes)
@@ -204,7 +206,7 @@ Christian K\"oher
 	    work with files where the variability information was changed and files that were indirectly affected by the variability change
 	\end{itemize}
     }
-	{When a file is modified, it may affect other files as well that were not changed directly. Consequently, depending on the extractors and analyses used it may be necessary to analyze those files as well.}
+	{When a file is modified, it may affect other files as well that were not changed directly. Depending on the extractors and analyses used it may be necessary to analyze those files as well.}
 \end{subreq}
 
 \end{req}
@@ -217,11 +219,29 @@ Christian K\"oher
 
 \end{req}
 
-\begin{req}[Dead Code Analysis] 
+\begin{req}[Incremental Dead Code Analysis] 
 \reqtable
-	{Must}  {Initial Description}
-	{The Dead Code Analysis must be integrated in the software system including support for incremental processing}
-	{The Dead Code Analyis serves as a practical example for block based analyses. It is used to demonstrate and evaluate the effectiveness of the incremental approach.}
+	{Must}  {Initial description}
+	{An incremental dead code analysis must be integrated in the software system}
+	{The dead code analyis serves as a practical example for block based analyses. It is used to demonstrate and evaluate the effectiveness of the incremental approach.}
+	
+	
+
+	
+	\begin{subreq}[Incremental Dead Code Analysis Result Format] \label{req:format}
+    \reqtable
+    {Must}  {Interview}
+	{The result should be given in the same csv-format as implemented in the existing UnDeadAnalyzer\footnote{\url{https://github.com/KernelHaven/UnDeadAnalyzer}} plugin for Kernelhaven. If no new analysis is required, a message should be printed to the log and no new result-file must be generated as output.}
+	{Maintaining the same format as the non-incremental dead code analysis allows for comparability between incremental and non-incremental analyses. In contrast to non incremental analyses there might be situations where no new analysis is required. If that is the case, a message must be written to the log. However no new result-file has to be generated. \\
+	\emph{Note: eventhough the csv-format remains unchangend, the contents of incremental and non-incremental result-files might differ (see REQ \ref{req:coverage})}}
+	\end{subreq}
+	
+	\begin{subreq}[Incremental Dead Code Analysis Result Coverage] \label{req:coverage}
+    \reqtable
+    {Must}  {Interview, feedback from presentation of initial concept}
+	{The analyis result should only contain elements that are results of the latest analysis increment}
+	{As the analysis should provide feedback for the developer on his work, parts of the software system which could not have been affected by the changes he introduced do not need to be represented in the result. Therefore merging the result of the increment with previous results is not desired.}
+	\end{subreq}
 \end{req}
 
 \clearpage
@@ -232,12 +252,9 @@ Christian K\"oher
 	{The filetypes listed above represent the CodeModel, BuildModel and VariabilityModel of the Linux kernel. As the Linux kernel is used for the evaluation of the implemented incremental analysis approach, those filetypes need to be considered.}
 \end{req}
 
-\begin{req}[Analysis Result] 
-\reqtable
-    {May}  {Interview}
-	{The analyis result should only contain elements that resulted of the latest analysis}
-	{As the analysis should provide feedback for the developer on his work, parts of the software system which could not have been affected by the changes he introduced do not need to be represented in the result.}
-\end{req}
+
+
+
 
 \begin{req}[Run existing KernelHaven-Analyses incrementally] 
 \reqtable
@@ -252,18 +269,39 @@ Christian K\"oher
 
 This section describes the implemented infrastructure for incremental analyses and provides reasoning for the decisions made when engineering the infrastructure. The term \"incremental analyses\" will henceforth be used as shorthand for  \"block based incremental analyses\" as other types of analyses are not covered by the infrastructure.
 
-The infrastructure itself is based on KernelHaven \cite{KernelHaven} as KernelHaven together with its plugins provides a working implementation for various software product line analyses. Through KernelHaven's plugin interfaces, it is also possible to implement the infrastructure for incremental analyses as a plugin itself.
+The infrastructure itself is based on KernelHaven\cite{KernelHaven} as KernelHaven together with its plugins provides a working implementation for various software product line analyses. Through KernelHaven's plugin interfaces, it is also possible to implement the infrastructure for incremental analyses as a plugin itself.
 
 By extending an existing infrastructure, we can benefit from an existing codebase as well as future developments within the KernelHaven project. Furthermore future users of the inremental infrastructure can adjust existing traditional non-incremental analyses written for KernelHaven to run as incremental Analyses.
 
-\subsection{}
+\subsection{Tasks before Incremental Analyses}
 
+KernelHaven usually triggers extractors when an analysis is initialized so that the according models can be provided for that analysis. This allows for clean analysis implementations without direct calls to extractors as the analysis is directly provided with the extraction result. Being dependent on results being passed to the analysis itself also means that we can not directly control extractors from within the analysis itself.
 
+However some for incremental analyses some prior and subsequent tasks are required:
 
+\begin{enumerate}
+	\item Creation/Modification of codebase from the diff-file
+	\item Filtering of artifacts within the codebase to extract from \\ \hspace{0.1em} \\
+	      EXTRACTION
+	\item Merging of extracted subset of the model with the previous model
+	\item Providing the extracted model to the analysis
+\end{enumerate}
 
+The diff-file represents the main input for an incremental analysis. While a non-incremental run of KernelHaven would assume an existing folder with a codebase to run its extractors on, this is not the case for incremental analyses. An incremental analysis starts off with the old codebase from the previous run but gets passed a diff file that describes a set of changes. Because KernelHaven's extractors need to run on files and folders directly, those changes need to be integrated into the existing codebase before extractors may run.
 
+After integrating the changes into the codebase the extractors could technically run in the same manner as they do within an non-incremental analysis. However because we assume that the previous state of the codebase has already been analyzed when running an incremental analysis, the extractors only need to extract information from a subset of files as other information may be reused from the previous run of the extractors.
 
+Because those first two steps need to happen before the extraction and analysis itself, it makes sense to run them before an Analysis is instantiated. With the \texttt{IPreparation}-interface, KernelHaven offers a mechanism to execute code before the rest of the infrastructure is started allowing to modify the configuration and perform other tasks.
 
+For the incremental infrastructure, the \texttt{IncrementalPreparation}-class implements this interface and merges the changes described by the diff file with the exisiting codebase. It then continues to  modify the configuration by defining the actual input-files upon which the extractors are run.
+
+Using the \texttt{IPreparation}-interface preserves the usual data-flow within KernelHaven where extractors run based on a configuration-file and pass their results to the analyses. An alternative would have been to implement those tasks as an \texttt{AnalysisComponent} or \texttt{IAnalysis} both of which represent possibilies to create an analysis plugin for KernelHaven. This would however represent a breach in the data-flow of KernelHaven as an analysis would now directly define the inputs for the extractors.
+
+Furthermore the the \texttt{IPreparation}-interface offers more flexibility to adjust the configuration of KernelHaven as all parts of the infrastructure - even the actual analysis-class itself - can be configured from within an \texttt{IPreparation}-implemntation. Therfore the modifiability of the incremental infrastructure is higher than with analysis-classes.
+
+Given the nature of tasks 3 and 4, those tasks may not be performed within the \texttt{IncrementalPreparation} as they require an extracted model to work with. Therefore they need to run after the extraction took place. The according KernelHaven plugin types for execution after extraction are the analysis-plugins \texttt{AnalysisComponent} and \texttt{IAnalysis}.  \texttt{IAnalysis} is meant for implementing a single analysis that runs after extraction while an implementation of \texttt{AnalysisComponent} represents a component that passes its result on to the next component. Given that we need to take the result from the extractors (similar to a normal analysis-implementation), merge those results with an existing model and then need to provide the result to our core analysis, the \texttt{AnalysisComponent} is a natural choice for implementing tasks 3 and 4. 
+
+\texttt{IncrementalPostExtraction} is an implementation of \texttt{AnalysisComponent} which takes the result from the extractors, merges it with the previous model and then passes it on to the next component. This next component finally is the core analysis which analyzes the resulting set of models.
 
 %\Bibliography
 \newpage
