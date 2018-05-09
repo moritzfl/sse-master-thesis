@@ -43,6 +43,8 @@
 
 
 \newtheorem{req}{REQ}
+\newtheorem{subreq}{REQ}[req]
+\newtheorem{subsubreq}{REQ}[req]
 \AtBeginEnvironment{req}{\Needspace{5\baselineskip}}
 \setcounter{req}{0}
 
@@ -116,15 +118,14 @@ Christian K\"oher
 	{Must}  {Interview}
 	{The incremental analysis must work based on the current state of a repository and a proposed change}
 	{The working base of each incremental analysis is the previous state before a commit/code change. The increment is represented by the change introduced.}
+	
+	\begin{subreq}[Input Format for Incremental Analysis] \label{req:git-diff}
+		\reqtable
+		{Must}  {Interview}
+		{The input must be a git-diff}
+		{The main input for the analysis is a git-diff. This diff represents a changeset that is to be analysed.}
+	\end{subreq}
 \end{req}
-
-\begin{req}[Input Format for Incremental Analysis] \label{req:git-diff}
-\reqtable
-	{Must}  {Interview}
-	{The input must be a git-diff}
-	{The main input for the analysis is a git-diff. This diff represents a changeset that is to be analysed.}
-\end{req}
-
 
 
 \begin{req}[Filtering of Source Files] \label{req:early-filtering}
@@ -135,33 +136,53 @@ Christian K\"oher
 \end{req}
 
 \clearpage
-\begin{req}[Optimization Options for Filtering Source Files] \label{req:optimization}
+\begin{req}[Configuration of Filters for Input-Files] \label{req:optimization}
 \reqtable
 	{Must}  {Initial Description}
 	{
-	The following options must be implemented:
+	The implemented infrastructure must provide means to configure different filters for the files that are to be analyzed.
+    }
+	{Depending on the extractor in use and the way it processes input files, different options cover different use cases. Furthermore different filters may affect the overall performance of the software system.}
+
+\begin{subreq}[Implementation of Filters for Input-Files]
+    \reqtable
+	{Must}  {Interview, Initial Description}
+	{
+	The filters listed below must be implemented \cite{req:optimization}:
 	\begin{itemize}
 		\item off \\
 		no filtering 
 	    \item change only \\
 	    only work with files that were modified
-	    \item change-effect \\
-	    like previous but includes files indirectly affected by the change aswell
 	    \item variability-change only \\
 	     only work with files where the variability information was changed
-	    \item variability-change-effect \\
-	    like previous but includes files indirectly affected by the change aswell
 	\end{itemize}
     }
-	{Depending on the extractor in use and the way it processes input files, different options cover different use cases. Therefore we differenciate between *change only and *change-effect options. The variability options represent the most sophisticated processing of input files. The other options serve the purpose of enabling an evaluation of the performance benefits between each filter-type }
+	{In order to evaluate different filter methods and their effect on performance, different categories of filtering are required. Off represents the state where no filtering is done, while change performs superficial filtering without regarding variability information directly. The last option analyzing variability change is the most sophisticated filtering option of the three as it requires an analysis of the filecontent of each input file itself.}
+\end{subreq}
+
+\begin{subreq}[Implementation of Effect-Filters]
+    \reqtable
+	{May}  {Interview, Initial Description}
+	{
+	Of the options listed below must be implemented \cite{req:optimization}:
+	\begin{itemize}
+		\item change-effect \\
+		work with files that were modified and files that were indirectly affected by the change (eg. through includes)
+	    \item variability-effect  \\
+	    work with files where the variability information was changed and files that were indirectly affected by the variability change
+	\end{itemize}
+    }
+	{When a file is modified, it may affect other files as well that were not changed directly. Consequently, depending on the extractors and analyses used it may be necessary to analyze those files as well.}
+\end{subreq}
 
 \end{req}
 
-\begin{req}[Integration as Pre-Commit-Hook must be possible] \label{req:commit-hook}
+\begin{req}[Rollback must be possible] \label{req:commit-hook}
 \reqtable
 	{Must}  {Interview}
-	{It must be possible to intgrate the Software-System to perform an analysis as a pre-commit-hook for the git versioning system.}
-	{After a change is proposed by a developer thorugh an commit, the commit may be rejected or accepted depending on the outcome of the analysis.}
+	{It must be possible to revert back to the previous state after execution of an incremental analysis.}
+	{An Analysis may change the source-files used as input for the extractors along with other changes. Those changes reflect the changes introduced by the new increment that was used as input. If that increment however contains defects identified by the analysis the user might choose to revert the changes and propose an alternative change. This alternative change can only be analyzed if KernelHaven reverts to the original state before the initial change.}
 
 \end{req}
 
@@ -183,7 +204,7 @@ Christian K\"oher
 \begin{req}[Analysis Result] 
 \reqtable
     {May}  {Interview}
-	{The analyis result should only contain elements that were affected by the change introduced}
+	{The analyis result should only contain elements that resulted of the analyzed increment}
 	{As the analysis should provide feedback for the developer on his work, the results should only include elements affected by his work.}
 \end{req}
 
