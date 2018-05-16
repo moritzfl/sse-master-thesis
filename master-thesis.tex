@@ -126,6 +126,8 @@ Christian K\"oher
 
 \todo{describe extension possiblities - plugins, preparation task etc.}
 
+\todo{describe phases in non-incremental infrastructure}
+
 \subsection{Objective for this Work}
 
 
@@ -211,7 +213,7 @@ Christian K\"oher
 
 \end{req}
 
-\begin{req}[Rollback must be possible] \label{req:commit-hook}
+\begin{req}[Rollback must be possible] \label{req:rollback}
 \reqtable
 	{Must}  {Interview}
 	{It must be possible to revert back to the previous state after execution of an incremental analysis.}
@@ -267,41 +269,58 @@ Christian K\"oher
 
 \section{Implementation of Incremental Analyses}
 
-This section describes the implemented infrastructure for incremental analyses and provides reasoning for the decisions made when engineering the infrastructure. The term \"incremental analyses\" will henceforth be used as shorthand for  \"block based incremental analyses\" as other types of analyses are not covered by the infrastructure.
+This section describes the implemented infrastructure for incremental analyses and provides reasoning for the decisions made when engineering the infrastructure. The term 'incremental analyses' will henceforth be used as shorthand for  'block based incremental analyses' as other types of analyses are not targeteted by the infrastructure.
 
 The infrastructure itself is based on KernelHaven\cite{KernelHaven} as KernelHaven together with its plugins provides a working implementation for various software product line analyses. Through KernelHaven's plugin interfaces, it is also possible to implement the infrastructure for incremental analyses as a plugin itself.
 
-By extending an existing infrastructure, we can benefit from an existing codebase as well as future developments within the KernelHaven project. Furthermore future users of the inremental infrastructure can adjust existing traditional non-incremental analyses written for KernelHaven to run as incremental Analyses.
+By extending an existing infrastructure like KernelHaven, we can benefit from an existing codebase as well as future developments within the KernelHaven project. Furthermore future users of the incremental infrastructure can adjust existing non-incremental analyses written for KernelHaven to run as incremental analyses.
 
-\subsection{Tasks before Incremental Analyses}
+\subsection{Overview: Four Phases of an Incremental Analysis}
 
-KernelHaven usually triggers extractors when an analysis is initialized so that the according models can be provided for that analysis. This allows for clean analysis implementations without direct calls to extractors as the analysis is directly provided with the extraction result. Being dependent on results being passed to the analysis itself also means that we can not directly control extractors from within the analysis itself.
+As described in \autoref{kernelhaven}
 
-However some for incremental analyses some prior and subsequent tasks are required:
+\subsubsection{Tasks of the Preparation-Phase}
 
-\begin{enumerate}
-	\item Creation/Modification of codebase from the diff-file
-	\item Filtering of artifacts within the codebase to extract from \\ \hspace{0.1em} \\
-	      EXTRACTION
-	\item Merging of extracted subset of the model with the previous model
-	\item Providing the extracted model to the analysis
-\end{enumerate}
+The goals of the preparation-phase in the incremental infrastructure are to apply relevant changes to the codebase and reduce the number of files that the extraction has to run on.
 
-The diff-file represents the main input for an incremental analysis. While a non-incremental run of KernelHaven would assume an existing folder with a codebase to run its extractors on, this is not the case for incremental analyses. An incremental analysis starts off with the old codebase from the previous run but gets passed a diff file that describes a set of changes. Because KernelHaven's extractors need to run on files and folders directly, those changes need to be integrated into the existing codebase before extractors may run.
+KernelHaven usually triggers extractors when an analysis is initialized. This allows for clean analysis implementations without direct calls to extractors as the analysis is directly provided with the extraction result. Therefore the extraction process is not controlled by the analysis itself - an analysis implementations just expects models as inputs and does not need to care for where they come from. Instead, the KernelHaven infrastructure provides the models for the analysis.
 
-After integrating the changes into the codebase the extractors could technically run in the same manner as they do within an non-incremental analysis. However because we assume that the previous state of the codebase has already been analyzed when running an incremental analysis, the extractors only need to extract information from a subset of files as other information may be reused from the previous run of the extractors.
+In this scenario, the extraction is executed based on parameters defined in a configuration-file that gets passed to KernelHaven as a command line parameter.
 
-Because those first two steps need to happen before the extraction and analysis itself, it makes sense to run them before an Analysis is instantiated. With the \texttt{IPreparation}-interface, KernelHaven offers a mechanism to execute code before the rest of the infrastructure is started allowing to modify the configuration and perform other tasks.
+In our incremental analyses infrastructure, there steps that prepare the input and configuration for the extractors before they are started.
 
-For the incremental infrastructure, the \texttt{IncrementalPreparation}-class implements this interface and merges the changes described by the diff file with the exisiting codebase. It then continues to  modify the configuration by defining the actual input-files upon which the extractors are run.
+For an incremental analysis the extraction of the models can not simply run on the entire codebase as REQ \ref{req:early-filtering} requires that input files are filtered before extraction. This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused.
+
+ But even before any filtering on the artifacts in the codebase can happen, the incremental infrastructure needs to ensure a codebase that represents the increment that is to be analyzed. The main input is provided through a git-diff file describing changes to the codebase REQ \ref{req:git-diff}. 
+ 
+ In order to allow for reuse of existing extractors, the input must be processed in a way that they can work with. As existing extractors work based on the access to the filesystem, the changes in the diff-file must be merged with the codebase.
+
+After integrating the changes into the codebase the extractors could technically run in the same manner as they do within an non-incremental analysis. However because we assume that the previous state of the codebase has already been extracted in a previous run when running an incremental analysis, the extractors only need to extract information from a subset of files. The remaining extraction results may be reused from the previous run of the extractors.
+
+\subsubsection{Tasks of the Post-Extraction-Phase}
+
+Because of the filtering performed in the Preparation-Phase, the analysis may not simply run on the result of the extractors directly. Therefore it is merged with the results of previous extractions. After merging, it passes a representation of the model to the analysis.
+
+While merging the extractors outputs, it is important that no prior extraction results gets directly overwritten. This is because REQ \ref{req:rollback} requires that the state before the execution of an incremental analysis can be restored. Therefore the Post-Extraction-Phase uses a modified implementation of the cache-system, that the main infrastructure of KernelHaven uses. This \texttt{HybridCache} allows storage and access to two versions of the modelset. It guarantees that the previous modelset can be restored.
+
+While a rollback to previous extraction-results is the main reason for introducing the \texttt{HybridCache}, a side benefit is that analyses now may use both the current and the previous state of the codebase. \todo{eventually discuss this in more detail? or reference to a later chapter}.
+
+As 
+
+
+\subsection{The Preparation-Phase}
+
+\subsubsection{Technical Implementation}
+
+Because the definition of inputs for the extractors of the Preparation-Component needs to happen before the extraction and analysis itself, it makes sense to run them before an analysis is instantiated. With the \texttt{IPreparation}-interface, KernelHaven offers a mechanism to execute code before the rest of the infrastructure is started. Therefore it allows to modify the configuration that is initially described by a configuration-file. Furthermore other tasks independent of the modifications to the configuration such as applying changes to the codebase may also be executed.
+
+For the incremental infrastructure, the \texttt{IncrementalPreparation}-class implements the \texttt{IPreparation}-interface and merges the changes described by the diff-file with the exisiting codebase. It then continues to  modify the configuration by defining the actual input-files upon which the extractors are run.
 
 Using the \texttt{IPreparation}-interface preserves the usual data-flow within KernelHaven where extractors run based on a configuration-file and pass their results to the analyses. An alternative would have been to implement those tasks as an \texttt{AnalysisComponent} or \texttt{IAnalysis} both of which represent possibilies to create an analysis plugin for KernelHaven. This would however represent a breach in the data-flow of KernelHaven as an analysis would now directly define the inputs for the extractors.
 
-Furthermore the the \texttt{IPreparation}-interface offers more flexibility to adjust the configuration of KernelHaven as all parts of the infrastructure - even the actual analysis-class itself - can be configured from within an \texttt{IPreparation}-implemntation. Therfore the modifiability of the incremental infrastructure is higher than with analysis-classes.
+Furthermore, the the \texttt{IPreparation}-interface offers more flexibility to adjust the configuration of KernelHaven as all parts of the infrastructure - even the actual analysis-class itself - can be configured from within an \texttt{IPreparation}-implementation. Therfore the modifiability of the incremental infrastructure is higher than with analysis-classes.
 
-Given the nature of tasks 3 and 4, those tasks may not be performed within the \texttt{IncrementalPreparation} as they require an extracted model to work with. Therefore they need to run after the extraction took place. The according KernelHaven plugin types for execution after extraction are the analysis-plugins \texttt{AnalysisComponent} and \texttt{IAnalysis}.  \texttt{IAnalysis} is meant for implementing a single analysis that runs after extraction while an implementation of \texttt{AnalysisComponent} represents a component that passes its result on to the next component. Given that we need to take the result from the extractors (similar to a normal analysis-implementation), merge those results with an existing model and then need to provide the result to our core analysis, the \texttt{AnalysisComponent} is a natural choice for implementing tasks 3 and 4. 
 
-\texttt{IncrementalPostExtraction} is an implementation of \texttt{AnalysisComponent} which takes the result from the extractors, merges it with the previous model and then passes it on to the next component. This next component finally is the core analysis which analyzes the resulting set of models.
 
 %\Bibliography
 \newpage
@@ -309,4 +328,4 @@ Given the nature of tasks 3 and 4, those tasks may not be performed within the \
 \bibliography{sources}
 
 
-\end{document}
+\end{document} 
