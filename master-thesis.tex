@@ -6,6 +6,7 @@
 \usepackage{graphicx}
 \usepackage{fancyhdr}
 \usepackage{tabularx}
+\usepackage{listingsutf8}
 \usepackage{hyperref}
 \usepackage{etoolbox}% http://ctan.org/pkg/etoolbox
 \usepackage{needspace}% http://ctan.org/pkg/needspace
@@ -277,48 +278,123 @@ By extending an existing infrastructure like KernelHaven, we can benefit from an
 
 \subsection{Overview: Four Phases of an Incremental Analysis}
 
-As described in \autoref{kernelhaven}
 
-\subsubsection{Tasks of the Preparation-Phase}
+A simple non-incremental analysis in KernelHaven can be broken down to phases: the extraction phase and the analysis phase. In the extraction phase, KernelHaven extracts models from the codebase. In the analysis-phase the resulting models are used to compute the analysis results. A configuration file defines where the codebase is located and provides settings for the extractors and analysis. From the standpoint of an analysis-developer, the configuration file directly defines the configuration for extractors and analysis. The implementation within KernelHaven is more complex as the configuration is read and transferred into a Configuration-object that is then made available to extractors and analyses. For simplification purposes this process is not represented in detail within the illustration. 
 
-The goals of the preparation-phase in the incremental infrastructure are to apply relevant changes to the codebase and reduce the number of files that the extraction has to run on.
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{0.7\textwidth} 
+    \caption[Non-Incremental Analysis: Two Phases]{Non-Incremental Analysis: Two Phases}\label{2-phases}
+    \includegraphics[width=1\textwidth]{img/KernelHaven.pdf}
+  \end{minipage}
+\end{figure}
 
-KernelHaven usually triggers extractors when an analysis is initialized. This allows for clean analysis implementations without direct calls to extractors as the analysis is directly provided with the extraction result. Therefore the extraction process is not controlled by the analysis itself - an analysis implementations just expects models as inputs and does not need to care for where they come from. Instead, the KernelHaven infrastructure provides the models for the analysis.
+While the Analysis- and Extraction-Phase are also present for analyses implemented with the incremental infrastructure, there are additional mandatory tasks which get executed in two more phases - the Preparation-Phase and the Post-Extraction-Phase. The resulting four phases are visualized in \autoref{4-phases}.
 
-In this scenario, the extraction is executed based on parameters defined in a configuration-file that gets passed to KernelHaven as a command line parameter.
+The Preparation-Phase is the first phase in an incremental analysis. Its purpose is to update the codebase and reduce the number of files that the extraction has to run on (see REQ \ref{req:early-filtering}. This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused. KernelHaven allows the configuration-object to define which files extractors run on. Therefore the configuration is not simply read from the configuration-file and passed on without modification but instead gets modified to only define a subset of the original files. This modification happens in the Preparation-Phase before the Extraction-Phase starts.
 
-In our incremental analyses infrastructure, there steps that prepare the input and configuration for the extractors before they are started.
+ But even before any filtering on the artifacts in the codebase happens, the incremental infrastructure ensures that the codebase represents the increment that is to be analyzed. This is possible to achieve by using a git-diff file describing changes to the codebase (see REQ \ref{req:git-diff}). In order to allow for reuse of existing extractors, the changes need to be applied to the codebase on the filesystem as the extractor-plugins for KernelHaven work based on access to the filesystem and can not work with data streams.
 
-For an incremental analysis the extraction of the models can not simply run on the entire codebase as REQ \ref{req:early-filtering} requires that input files are filtered before extraction. This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused.
+Because of the filtering performed in the Preparation-Phase, the analysis may not simply run on the result of the extractors directly as those would only generate a subset of the models. Therefore the result is merged with the results of previous extractions. After merging, it makes the resulting code-, build- and variabilitymodel available to the analysis through the \texttt{HybridCache}.
 
- But even before any filtering on the artifacts in the codebase can happen, the incremental infrastructure needs to ensure a codebase that represents the increment that is to be analyzed. The main input is provided through a git-diff file describing changes to the codebase REQ \ref{req:git-diff}. 
- 
- In order to allow for reuse of existing extractors, the input must be processed in a way that they can work with. As existing extractors work based on the access to the filesystem, the changes in the diff-file must be merged with the codebase.
+While merging the extractors outputs, it is important that no prior extraction results get overwritten. This is because REQ \ref{req:rollback} requires that the state before the execution of an incremental analysis can be restored. Therefore the Post-Extraction-Phase uses a modified implementation of the cache-system, that the main infrastructure of KernelHaven uses. This \texttt{HybridCache} allows storage and access to two versions of the code-, build- and variabilitymodel. It guarantees that the previous code-, build- and variabilitymodel can be restored.
 
-After integrating the changes into the codebase the extractors could technically run in the same manner as they do within an non-incremental analysis. However because we assume that the previous state of the codebase has already been extracted in a previous run when running an incremental analysis, the extractors only need to extract information from a subset of files. The remaining extraction results may be reused from the previous run of the extractors.
+While a rollback to previous extraction-results is the main reason for introducing the \texttt{HybridCache}, a side benefit is that analyses now may use both the current and the previous state of the codebase. This could be relevant for future implementations of incremental analyses that draw benefits from comparing the old and the new model. \todo{eventually discuss this in more detail? or reference to a later chapter}.
 
-\subsubsection{Tasks of the Post-Extraction-Phase}
-
-Because of the filtering performed in the Preparation-Phase, the analysis may not simply run on the result of the extractors directly. Therefore it is merged with the results of previous extractions. After merging, it passes a representation of the model to the analysis.
-
-While merging the extractors outputs, it is important that no prior extraction results gets directly overwritten. This is because REQ \ref{req:rollback} requires that the state before the execution of an incremental analysis can be restored. Therefore the Post-Extraction-Phase uses a modified implementation of the cache-system, that the main infrastructure of KernelHaven uses. This \texttt{HybridCache} allows storage and access to two versions of the modelset. It guarantees that the previous modelset can be restored.
-
-While a rollback to previous extraction-results is the main reason for introducing the \texttt{HybridCache}, a side benefit is that analyses now may use both the current and the previous state of the codebase. \todo{eventually discuss this in more detail? or reference to a later chapter}.
-
-As 
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Incremental Analysis: Four Phases]{Incremental Analysis: Four Phases}\label{4-phases}
+    \includegraphics[width=1\textwidth]{img/KernelHavenIncremental.pdf}
+  \end{minipage}
+\end{figure}
 
 
-\subsection{The Preparation-Phase}
-
-\subsubsection{Technical Implementation}
+\subsection{Implementation of the Preparation-Phase}\label{preparation-phase}
 
 Because the definition of inputs for the extractors of the Preparation-Component needs to happen before the extraction and analysis itself, it makes sense to run them before an analysis is instantiated. With the \texttt{IPreparation}-interface, KernelHaven offers a mechanism to execute code before the rest of the infrastructure is started. Therefore it allows to modify the configuration that is initially described by a configuration-file. Furthermore other tasks independent of the modifications to the configuration such as applying changes to the codebase may also be executed.
 
+An alternative to this approach would have been to configure extractors from within an analysis-plugin through the implementation of an \texttt{AnalysisComponent} or \texttt{IAnalysis}. In this case the analysis-plugin would have to care about the configuration of extractors and the content of the codebase on the filesystem. This is possible because KernelHaven is implemented as a pull-pipeline. The component at the very end of the pipeline could technically modify the way that prior components work. It would however represent a breach in the data-flow to have the last component modify the inputs and configuration for prior  components. 
+
+In a non-incremental analysis, the definition of the configuration happens before the pipeline is started when writing the configuration-file. Some parameters of the configuration might get overwritten by command line parameters when the pipeline is set up by the \texttt{PipelineConfigurator}, the class responsible for putting all parts together before starting the pipeline - however the configuration is not directly modified from extractors or analyses. Using the \texttt{IPreparation}-interface preserves the data-flow within KernelHaven.
+
+Furthermore, the the \texttt{IPreparation}-interface offers more flexibility to adjust the configuration of KernelHaven as all parts of the infrastructure - even the actual analysis-class itself - can be configured from within an \texttt{IPreparation}-implementation. Therfore the modifiability of the incremental infrastructure is higher than with analysis-classes which may only change the configuration for extractors.
+
 For the incremental infrastructure, the \texttt{IncrementalPreparation}-class implements the \texttt{IPreparation}-interface and merges the changes described by the diff-file with the exisiting codebase. It then continues to  modify the configuration by defining the actual input-files upon which the extractors are run.
 
-Using the \texttt{IPreparation}-interface preserves the usual data-flow within KernelHaven where extractors run based on a configuration-file and pass their results to the analyses. An alternative would have been to implement those tasks as an \texttt{AnalysisComponent} or \texttt{IAnalysis} both of which represent possibilies to create an analysis plugin for KernelHaven. This would however represent a breach in the data-flow of KernelHaven as an analysis would now directly define the inputs for the extractors.
 
-Furthermore, the the \texttt{IPreparation}-interface offers more flexibility to adjust the configuration of KernelHaven as all parts of the infrastructure - even the actual analysis-class itself - can be configured from within an \texttt{IPreparation}-implementation. Therfore the modifiability of the incremental infrastructure is higher than with analysis-classes.
+\subsubsection{Updating the Codebase}\label{git-apply}
+
+The changes to the codebase are described through a git-diff file. While it is technically possible to create own implementations that apply those changes to files on the filesystem, we use the \texttt{git apply} command. \texttt{git apply} allows to apply changes in git-diff file to a given directory even if that directory is not a git repository. All that is required is command line call from within the folder on which the command should be applied:
+
+\begin{lstlisting}[language=bash]
+  $ git apply path/to/git.diff
+\end{lstlisting}
+
+ Furthermore \texttt{git apply} also allows to revert changes thereby ensuring the fulfillment of REQ \ref{req:rollback}:
+ \begin{lstlisting}[language=bash]
+  $ git apply --reverse path/to/git.diff
+\end{lstlisting}
+ 
+ A downside to using \texttt{git apply} is that it requires git to be installed on the system that KernelHaven is executed on. However because we assume a git-diff file as input (see REQ \ref{req:git-diff}), it is reasonable to assume that git is most likely already installed on the executing system.
+
+Furthermore there are several advantages to using \texttt{git apply}. As the input is defined by the creation of a git-diff file through the \texttt{git diff} command, also using git to apply the changes ensures compatibility with the file. Therefore we assume that the existing git implementation is less prone to errors than an own implementation or other third party implementations. The integration of \texttt{git apply} results in a low implementation effort as command line calls can easily be realized through javas \texttt{ProcessBuilder}\footnote{ProcessBuilder documentation: \url{https://docs.oracle.com/javase/7/docs/api/java/lang/ProcessBuilder.html}}.
+
+\subsubsection{Filtering of Input Files}\label{filtering-input}
+
+After the codebase was updated, all files represeting variability within the revision that is to be analyzed are available for subsequent processing. To fulfill REQ \ref{req:early-filtering}, a filtering mechanism is implemented. Separate filters can be configured for code-, build-, and variability-files through te configuration-file.
+
+One important resource that the filters use is an abstraction of the git-diff file that was used as input. This abstraction is implemented through the \texttt{DiffFile}-class.
+An instance of the \texttt{DiffFile}-object contains an entry for each file that was affected by the changes described in the git-diff file that was used as input. For each entry, one of the following types of change is included:
+
+\begin{itemize}
+	\item \texttt{MODIFICATION} \\
+	      indicates a modification of the file
+	\item \texttt{ADDITION} \\
+	      indicates the addition of the file
+	\item \texttt{DELETION} \\
+	      indicates the deletion of the file 
+	\item \texttt{UNDEFINED} \\
+	      the type of change should never be undefined. If it is, this indicates that the git-diff file was not properly translated into a \texttt{DiffFile}-object.
+\end{itemize}
+
+Furthermore the entries contain information on whether the variability is changed through the according git-diff file. So each entry is assigned one of the following markers aswell:
+
+\begin{itemize}
+	\item \texttt{CHANGE} \\
+	      indicates changed variability
+	\item \texttt{NO\_CHANGE} \\
+	      indicates unchanged variability
+	\item \texttt{NOT\_A\_VARIABILITY\_FILE}\\
+	      indicates that the file was not considered to be a filetype that carries variability information
+	\item \texttt{NOT\_ANALYZED}\\
+	      indicates that the file was not analyzed at all for variability changes
+\end{itemize}
+
+Creating an abstraction of the git-diff file requires that the file itself is read and interpreted. This is done by a \texttt{DiffAnalyzer}, a class that takes the git-diff file used as input and translates it into a \texttt{DiffFile}-object. There are two existing DiffAnalyzers implemented within the incremental infrastructure: the \texttt{SimpleDiffAnalyzer} which only looks for the type of change without considering variability and the \texttt{VariabilityDiffAnalyzer} which also analyses for variability changes. The advantage of the \texttt{SimpleDiffAnalyzer} is that it is faster than the \texttt{VariabilityDiffAnalyzer}. \todo{give numbers here - how much slower? test on initial commit}
+Therefore it makes sense to always use the \texttt{SimpleDiffAnalyzer} when variability-information is not needed for filtering.
+
+The implementation of the \texttt{VariabilityDiffAnalyzer} relies on previous work which performed a commit based analysis of software product line evolution \cite{ComAn}. The tool used and implemented for this analysis  is called ComAn \cite{ComAn-tool}. Because the paper covers commits to the Linux kernel, the tool can process variability changes within the variablity files of the Linux kernel. 
+
+ComAn is able to extract the number of lines for each changed file that is described in the git-diff file. This information is used within the \texttt{VariabilityDiffAnalyzer} to determine which files contain variability changes. 
+
+The result of the \texttt{DiffAnalyzer} then gets passed to the filters together with the path to the codebase on the filesystem and a regular expression describing which files to include. The result is a list of all the paths that should be included for extraction. Because a separate filter is responsible for each type of model, three lists are created separately the extractors for build-, variability- and codemodel.
+However currently only extractors for the codemodel can handle running on a subset of files within the codebase. As a result, both build- and variabilitymodel need to be extracted from scratch based on the entire codebase as soon as at least one file is included in the list.
+
+Each of the three separate filters for the code-, build- and variabilitymodel can be configured individually but in some cases one implementation can also be reused for all models. This is because the regular expression may allow sufficient adjustments for each model type depending on the filter implementation. Any filter implementations must extend the abstract \texttt{InputFilter}-class. The following filters are included in the incremental infrastructure:
+
+\begin{itemize}
+\item \texttt{DefaultFilter} \\
+    This filter lists all files within the directory of the codebase and filters them using the regular expression on the file-path. If all files representing  the build-, code- or variabilitmodel within the codebase are matched by the regular expression, this filter represents the off option described in REQ \ref{req:optimization}. 
+\item \texttt{ChangedOnlyFilter} \\
+    filters according to the change only option described in REQ \ref{req:optimization}. This filter takes the entries from the \texttt{DiffFile}-object where the file was either marked as Addition or Modification and then filters the file-paths for the regular expression.
+\item \texttt{VariabilityChangesFilter} \\
+    filters according to the variabilty change only option described in REQ \ref{req:optimization}. This filter filters similar to the \texttt{ChangedOnlyFilter} but only includes the files where the variability was marked as \texttt{CHANGE}.
+\end{itemize}
+
+
+
+
 
 
 
