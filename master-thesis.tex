@@ -7,6 +7,15 @@
 \usepackage{fancyhdr}
 \usepackage{tabularx}
 \usepackage{listingsutf8}
+\usepackage{lmodern}  % for bold teletype font
+\usepackage{amsmath}  % for \hookrightarrow
+\usepackage{xcolor}   % for \textcolor
+\lstset{
+  columns=fullflexible,
+  frame=single,
+  breaklines=true,
+  postbreak=\mbox{$\hookrightarrow$\space},
+}
 \usepackage{hyperref}
 \usepackage{etoolbox}% http://ctan.org/pkg/etoolbox
 \usepackage{needspace}% http://ctan.org/pkg/needspace
@@ -453,12 +462,64 @@ As \texttt{HybridCache} does allow access to both the current and previous model
   
 \subsection{Implementation of incremental Analyses}
 
-An \texttt{AnalysisComponent} using the \texttt{HybridCache} as input has access to all models. In order to make the implementation of an incremental analysis easier, \texttt{HybridCache} also allows to directly obtain the parts of the codemodel that did change.
+An \texttt{AnalysisComponent} using the \texttt{HybridCache} as input has access to all models in both the previous and current version. In order to make the implementation of an incremental analysis easier, \texttt{HybridCache} also allows to directly obtain the parts of the codemodel that did change. \texttt{AnalysisComponent}s implemented specifically for the incremental infrastructure may therefore work directly with an \texttt{HybridCache}-object as input. 
 
-When adapting a non-incremental \texttt{AnalysisComponent}-class that directly works with code-, build- or variabilitymodel, the non-incremental component expects those models to be passed to it through three distinct \texttt{AnalysisComponent}s. Each of those three components are passed to the non-incremental component through the constructor of the class. 
- \texttt{HybridCache} itself is a single object and not an implementation of \texttt{AnalysisComponent}. Furthermore the models represented through the \texttt{HybridCache} be directly accessed through method calls. In order to allow for reuse of existing analysis-implementations like the \texttt{UnDeadAnalyzer}, an adapter class was created that transforms the models stored in \texttt{HybridCache} to three separate OutputComponents.
+Non-incremental \texttt{AnalysisComponent}-classes that directly work with code-, build- or variabilitymodel assume different inputs. For those \texttt{AnalysisComponents} the expected inputs are three distinct \texttt{AnalysisComponent}s which provide code, build- and variabilitymodel. Each of those three components are passed to the non-incremental component through the constructor of the class as shown in the following code snippet:
+
+\begin{lstlisting}[language=java]
+/* Dead Code Analysis returning Dead Code Blocks as a result */
+public class DeadCodeFinder extends AnalysisComponent<DeadCodeBlock> {
+    /**
+     * Creates a dead code analysis.
+     */
+    public DeadCodeFinder(Configuration config, 
+        AnalysisComponent<VariabilityModel> vmComponent, 
+        AnalysisComponent<BuildModel> bmComponent, 
+        AnalysisComponent<SourceFile> cmComponent) {
+        ...
+    }
+\end{lstlisting}
+
+In order to comply with the input-definition an adaptation is needed. This adaptation can be achieved through the use of the \texttt{HybridCacheAdapter}. \texttt{HybridCacheAdapter} is able to create three distinct components providing the three models for usage in an \texttt{AnalysisComponent}. As it has to provide three different kinds of results to the next \texttt{AnalysisComponent} it can not use the default interface of \texttt{AnalysisComponent} for passing results. This is because that interface only allows to pass results of one specific kind. Therefore the access to the generated components that provide the model is achieved through get()-methods and not through the default interface. 
+
+\autoref{hybrid-cache} visualizes the usage of \texttt{HybridCacheAdapter} through an example. \texttt{IncrementalPostExtraction} defines its result as an \texttt{HybridCache}-object. \texttt{HybridCacheAdapter} uses that result but does not provide any result through the default interface. Instead it defines an empty output trough the usage of \texttt{Void} as result type. However it provides three \texttt{OutputComponent}s that are accessible through getters. The \texttt{OutputComponent}-class is a private class within the \texttt{HybridCacheAdapter} that is used as a wrapper for the models. Because an \texttt{OutputComponent} does extend the \texttt{AnalysisComponent}-class, it can be used as input for a subsequent \texttt{AnalysisComponent} - in this case the \texttt{DeadCodeAnalysis}. The \texttt{DeadCodeAnalysis} then computes the final result.
+
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Usage of the HybridCacheAdapter]{Usage of the HybridCacheAdapter}\label{hybrid-cache}
+    \includegraphics[width=1\textwidth]{img/HybridCacheAdapter.pdf}
+  \end{minipage}
+\end{figure}
+
+Adapting the input for the analysis is not the only purpose of the \texttt{HybridCacheAdapter} as it also defines which parts of the codemodel are passed on to the \texttt{AnalysisComponent}. Some  \texttt{AnalysisComponent}s like the \texttt{FeatureEffectAnalysis} might always need the complete codemodel and are therefore able to profit from faster extraction times through the incremental infrastructure. In fact existing non-incremental analysis is able to process complete models as this is what the KernelHaven infrastructure provides by default. It is therefore worth noting that the easiest way to adapt an analysis  is to pass the entire model to it through the \texttt{HybridCacheAdapter}.
+
+However the \texttt{DeadCodeAnalysis} may only need to access the part of the model that was modified as processing unchanged parts of the model does not always induce new results. Therefore the \texttt{HybridCacheAdapter} can either be used to return a complete codemodel or just the changed parts. The implementation of an incremental version of the \texttt{DeadCodeAnalysis} itself is explained in the next section.
+
+As the \texttt{HybridCacheAdapter} is meant for quick adaptation of existing analyses, it only provides generic functionality for filtering the codemodel by allowing to only provide the changed parts of the model. If filters are specifically designed to work for one analysis, they should be implemented within that analysis itself utilizing the full capabilities of \texttt{HybridCache} instead of relying on an adapter. This is why in contrast to \texttt{IncrementalPreparation} where custom implementations for \texttt{InputFilter}s are allowed for filtering files within the codebase, the \texttt{HybridCache} does not provide such an interface for filtering the codemodel.
 
 \subsubsection{Incremental Dead Code Analysis} \label{incremental-dead-code-analysis}
+
+The \texttt{DeadCodeFinder} is an \texttt{AnalysisComponent} implemented in the \texttt{UndeadAnalyzer}-plugin of KernelHaven. It uses the code-, build- and variabilitymodel to compute results. The codemodel is represented by a collection of \texttt{SourceFile}-objects each representing the model of a single sourcefile from the codebase.
+
+The analysis iterates over all \texttt{SourceFile}-objects and separately checks them for dead code blocks. The constraints defined through the build- and variabilitymodel are included for the identification of such code blocks. Because every model represented by a \texttt{SourceFile} is considered separately, changes in other parts of the codemodel do not impact the result of an unchanged parts. Therefore unchanged parts of the model do not need to be analyzed again if only the codemodel changed. It is sufficient to only analyze the parts of the codemodel that did change.
+
+If however the variability- or the buildmodel did change, the restrictions that were used to analyze the codemodel before are changed aswell. As a result, the entire codemodel has to be processed again within the analysis.
+
+Therefore for implementing an incremental version of the \texttt{DeadCodeAnalysis} we have to consider the following two possibilities:
+
+\begin{enumerate}
+ \item variability- and buildmodel did not change
+ \begin{itemize}
+ 	\item only provide new parts of the codemodel to \texttt{DeadCodeFinder}
+ \end{itemize}
+  \item variability- or buildmodel did change
+ \begin{itemize}
+ 	\item provide complete codemodel to \texttt{DeadCodeFinder} (including parts of the model that were extracted in previous executions of the incremental analysis)
+ \end{itemize}
+\end{enumerate}
+
+The variability- and buildmodel are always provided to the \texttt{DeadCodeFinder} as they are required to process each \texttt{SourceFile}-object.
 
 
 
