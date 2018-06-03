@@ -125,6 +125,8 @@ Christian K\"oher
 
 \section{Introduction}
 
+However for any active software project, the codebase is dynamic and therefore bound to change. A changed codebase however mi
+
 \todo{Nicht vergessen: Aufbau der Arbeit erneut beschreiben}
 
 \section{Background}
@@ -134,11 +136,42 @@ Christian K\"oher
 
 \subsection{KernelHaven - an Analysis Infrastructure}\label{kernelhaven}
 
+ An analysis in KernelHaven in most cases can be broken down to two phases: the extraction phase and the analysis phase. In the extraction phase, KernelHaven extracts models from the codebase. In the analysis-phase the resulting models are used to compute the analysis results. A configuration file defines where the codebase is located and provides settings for the extractors and analysis. From the standpoint of an analysis-developer, the configuration file directly defines the configuration for extractors and analysis. However the actual implementation within KernelHaven is more complex as the configuration is read and transferred into a Configuration-object that is then made available to extractors and analyses. For simplification purposes this process is not represented in detail within the illustration. 
+
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Non-Incremental Analysis: Two Phases]{Non-Incremental Analysis: Two Phases}\label{2-phases}
+    \includegraphics[width=1\textwidth]{img/KernelHaven.pdf}
+  \end{minipage}
+\end{figure}
+
+
 \todo{describe extension possiblities - plugins, preparation task etc.}
 
 \todo{describe phases in non-incremental infrastructure}
 
-\subsection{Objective for this Work}
+\newpage
+\section{Concept for Incremental Analyses}
+
+KernelHaven and other software tools such as Undertaker\cite{Tartler:2011:FCC:1966445.1966451} currently allow to analyze a given codebase in its entirety. When changes to the codebase are introduced, the entire codebase must be analyzed again resulting in costly computations. This is because the model-extraction has to be redone and the subsequent analysis has to redo the computation for the new models. Assuming that an analysis consists of model-extraction and subsequent compuations based on the extracted models, we are presented with two options to reduce computational effort:
+
+\begin{enumerate}
+	\item Reduction of computational effort for the extractors \\
+	\emph{Extraction does not need to happen on the entire codebase - only the parts that changed dictate what to extract}
+	\item Reduction of computational effort for the computations performed on the extracted models \\
+	\emph{Models do not need to be processed again completely - only the parts that changed dictate what to process}
+\end{enumerate}
+
+The first option can be achieved by the filtering of input files so that only files that were affected by changes need to be extracted. The most trivial possibility to reduce effort is to define that where a file was left unmodified, no new extraction needs to happen. 
+However a file change does not necessarily result in changed variability information - and as models are extracted to obtain variability information, files where that information did not change can also be excluded. Filtering files based on changed variability further reduces the computational effort for obtaining the models. This kind of filtering can be used when every file is handled isolated from other files within the extraction logic.
+
+While the described approach certainly makes sense for some scenarios, it does not suffice for others. If a file changes, it might affect the models of another file aswell if dependencies exist between those two files.
+
+Depending on whether or not the extraction logic includes those dependencies when building a model for a single file, different models might be computed for the same file even if the file itself is unchanged. An example for this is the extraction logic TypeChef \cite{Kenner:2010:TTT:1868688.1868693}. Typechef uses macro expansion to compute the models for each sourcefile and thereby includes information from other files. 
+
+Therefore filtering for direct file changes or variability changes within a single file is not sufficient for every situation. Instead it might be necessary to also include files that have been affected by the change. In order to keep the concept for incremental analyses generic enough to cover those use cases, different filtering mechanism must be included. 
+
 
 
 \clearpage
@@ -288,17 +321,7 @@ By extending an existing infrastructure like KernelHaven, we can benefit from an
 \subsection{Overview: Four Phases of an Incremental Analysis}
 
 
-A simple non-incremental analysis in KernelHaven can be broken down to phases: the extraction phase and the analysis phase. In the extraction phase, KernelHaven extracts models from the codebase. In the analysis-phase the resulting models are used to compute the analysis results. A configuration file defines where the codebase is located and provides settings for the extractors and analysis. From the standpoint of an analysis-developer, the configuration file directly defines the configuration for extractors and analysis. The implementation within KernelHaven is more complex as the configuration is read and transferred into a Configuration-object that is then made available to extractors and analyses. For simplification purposes this process is not represented in detail within the illustration. 
-
-\begin{figure}[h] 
-  \centering
-  \begin{minipage}[b]{0.7\textwidth} 
-    \caption[Non-Incremental Analysis: Two Phases]{Non-Incremental Analysis: Two Phases}\label{2-phases}
-    \includegraphics[width=1\textwidth]{img/KernelHaven.pdf}
-  \end{minipage}
-\end{figure}
-
-While the Analysis- and Extraction-Phase are also present for analyses implemented with the incremental infrastructure, there are additional mandatory tasks which get executed in two more phases - the Preparation-Phase and the Post-Extraction-Phase. The resulting four phases are visualized in \autoref{4-phases}.
+While the Analysis- and Extraction-Phase as described in \autoref{concept} are also present for analyses implemented with the incremental infrastructure, there are additional mandatory tasks which get executed in two more phases - the Preparation-Phase and the Post-Extraction-Phase. The resulting four phases are visualized in \autoref{4-phases}.
 
 The Preparation-Phase is the first phase in an incremental analysis. Its purpose is to update the codebase and reduce the number of files that the extraction has to run on (see REQ \ref{req:early-filtering}. This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused. KernelHaven allows the configuration-object to define which files extractors run on. Therefore the configuration is not simply read from the configuration-file and passed on without modification but instead gets modified to only define a subset of the original files. This modification happens in the Preparation-Phase before the Extraction-Phase starts.
 
@@ -317,6 +340,7 @@ While a rollback to previous extraction-results is the main reason for introduci
     \includegraphics[width=1\textwidth]{img/KernelHavenIncremental.pdf}
   \end{minipage}
 \end{figure}
+
 
 
 \subsection{Implementation of the Preparation-Phase}\label{preparation-phase}
@@ -504,7 +528,7 @@ The \texttt{DeadCodeFinder} is an \texttt{AnalysisComponent} implemented in the 
 
 The analysis iterates over all \texttt{SourceFile}-objects and separately checks them for dead code blocks. The constraints defined through the build- and variabilitymodel are included for the identification of such code blocks. Because every model represented by a \texttt{SourceFile} is considered separately, changes in other parts of the codemodel do not impact the result of an unchanged parts. Therefore unchanged parts of the model do not need to be analyzed again if only the codemodel changed. It is sufficient to only analyze the parts of the codemodel that did change.
 
-If however the variability- or the buildmodel did change, the restrictions that were used to analyze the codemodel before are changed aswell. As a result, the entire codemodel has to be processed again within the analysis.
+If however the variability- or the buildmodel did change, the restrictions that were used to analyze the each part of the codemodel have changed aswell. As a result, the entire codemodel has to be processed again within the analysis.
 
 Therefore for implementing an incremental version of the \texttt{DeadCodeAnalysis} we have to consider the following two possibilities:
 
@@ -519,8 +543,57 @@ Therefore for implementing an incremental version of the \texttt{DeadCodeAnalysi
  \end{itemize}
 \end{enumerate}
 
-The variability- and buildmodel are always provided to the \texttt{DeadCodeFinder} as they are required to process each \texttt{SourceFile}-object.
+The current variability- and buildmodel are always provided to the \texttt{DeadCodeFinder} as they are required to process each \texttt{SourceFile}-object. The following code shows the main part of the incremental implementation for the Dead Code Analysis\footnote{for the complete implementation refer to \url{https://github.com/KernelHaven/IncrementalDeadCodeAnalysis}}:
 
+\begin{lstlisting}[language=java]
+// Determine whether only a part of the codemodel must be analyzed
+boolean partialAnalysis = !updatedBuildModel && !updatedVariabilityModel;
+
+// Create the adapter
+HybridCacheAdapter hca = new HybridCacheAdapter(config,
+    new IncrementalPostExtraction(config, 
+        getCmComponent(), 
+        getBmComponent(), 
+        getVmComponent()
+    ),
+    partialAnalysis);
+
+// Create the AnalysisComponent performing the Dead Code Analysis
+DeadCodeFinder dcf = new DeadCodeFinder(config, 
+    hca.getVmComponent(), 
+    hca.getBmComponent(),
+    hca.getCmComponent());
+
+return dcf;
+\end{lstlisting}
+
+\newpage
+\section{Evaluation}
+
+The evaluation of the incremental infrastructure will be performed to shed light on the performance gain as well as constistency of the results with those of a non-incremental analysis. The incremental infrastructure with the Dead Code Analysis will be compared against the non-incremental Dead Code Analysis implemented for KernelHaven. Both systems will mostly be using the same configuration for running with the exception being the additional parameters required for incremental analyses and of course the analysis-class itself.
+
+After computing some first preliminary results using both the incremental infrastructure and a non-incremental analysis in KernelHaven it became clear that the evaluation could not be performed for a large set of commits in a timely manner without further changes. This is because the non-incremental analysis always has to perform SAT-solving for all of the conditions imposed by the models for each commit. With the hardware at hand, about three iterations of the analysis could be performed per day. However the existing Dead Code Analysis was not multithreaded. In order to accomplish a higher number of analyzed commits, we chose to create a multithreaded version of the Dead Code Analysis. In doing so, we were able to achieve appoximately 35 analyses per day on our reference system.
+
+Those changes enabled the timely availabily of reference results for the incremental analysis to compare against. In order to keep the results compareable, the incremental version of the enalayis was also adjusted to support multithreaded operation. Those changes however do reduce the meaningfulness of comparisons against other tools that do not run multithreaded such as Undertaker \cite{Tartler:2011:FCC:1966445.1966451}. Undertaker is a tool that was developed prior to KernelHaven, supports the extraction of code models and is able to perform Dead Code Analysis on them. Given that Kernelhaven has an extractor plugin that leverages the extraction functionality of Undertaker, a comparison against the original Undertaker-tool would certainly have been interesting.
+
+The data used for evaluation consists of 307 commits to the main branch of the Linux kernel source tree \cite{linux}. Each commit was transformed into a git-diff file that then was directly used as input for the incremental analysis. The non-incremental reference results were also computed based on the diff-files. However the changes described through each git-diff file were applied to the codebase before the execution of KernelHaven itself as the non-incremental Dead Code Analysis expects a codebase that it can work with directly. The table below shows the exact range of commits used and how they were represented for the evaluation.
+
+\begin{tabular}{l | l | l}
+	Commit-Hash & Description & File \\ \hline
+	4fbd8d194f06c8a3fd2af1ce560ddb31f7ec8323 & Linux 4.15-rc1 & 00001-git.diff \\
+	... & ... & ... \\
+	d8a5b80568a9cb66810e75b182018e9edb68e8ff & Linux 4.15  & 00307-git.diff \\
+\end{tabular}
+
+To automate the generation of results, a collection of bash-scripts\footnote{\url{https://github.com/moritzfl/IncrementalAnalysesEvaluation}} was created. The github-project containing the bash-scripts also includes the git-diff files used for evaluation. The results computed by KernelHaven are attached to a release within the github-project. The reference system used for execution a virtual linux machine hosted on VMware ESXi \cite{ESXi-f0l} with 24 configured CPU-cores and 64GB RAM while the host system itself had access to 12 phyisical and 24 logical CPU cores clocked at 2.20 GHz each.
+
+\subsection{Non-Incremental: Results}
+
+\subsection{Incremental: Change Only Filter Results}
+
+\subsection{Incremental: Variability Change Filter Results}
+
+\subsection{Incremental: No Filter}
 
 
 %\Bibliography
