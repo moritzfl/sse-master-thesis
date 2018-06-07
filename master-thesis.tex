@@ -125,16 +125,54 @@ Christian K\"oher
 
 \section{Introduction}
 
-However for any active software project, the codebase is dynamic and therefore bound to change. A changed codebase however mi
 
 \todo{Nicht vergessen: Aufbau der Arbeit erneut beschreiben}
 
 \section{Background}
 \subsection{Software Product Lines}
 
+When starting a new software project from scratch, one approach is to write code specifically for that project. The codebase and the documentation are tailored to the needs and requirements currently at hand. And when another project comes along, you do the same thing there. However it might turn out that those two projects technically share common functionality eventhough each product has features that the other doesn't.
+
+Instead of writing code for one project specifically it might have made sense to create something that is configurable to cover multiple use cases. Then for the next project it would be possible to combine and configure existing developed artifacts. And after some more projects it is perhaps even possible to realize a new product just by configuring and combining the assets that have already been created. This is where Software Product Lines come in. In contrast to traditional software development, Software Product Lines aim to reuse existing assets instead of writing software from scratch.
+
+A prominent example for a Software Product Lines in the open source space is the Linux kernel. The Linux Kernel provides more than 10.000 configurable features \cite{Tartler:2011:FCC:1966445.1966451}. Linux uses a language called KConfig to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. In Software Product Lines, a characteristic that exists in some but not all products of a product line is called a Variability. Because Linux uses KConfig to define features that may vary for different product configurations, the KConfig files of the linux kernel represent a model of the variability within the kernel.
+
+The following example illustrates the definition of a feature within a KConfig file:
+
+\begin{lstlisting}{language=KConfig}
+menuconfig THUNDERBOLT
+	tristate "Thunderbolt support"
+	depends on PCI
+	depends on X86 || COMPILE_TEST
+	select APPLE_PROPERTIES if EFI_STUB && X86
+	select CRC32
+	select CRYPTO
+	select CRYPTO_HASH
+	select NVMEM
+	help
+	  Thunderbolt Controller driver. This driver is required if you
+	  want to hotplug Thunderbolt devices on Apple hardware or on PCs
+	  with Intel Falcon Ridge or newer.
+
+	  To compile this driver a module, choose M here. The module will be
+	  called thunderbolt.
+ \end{lstlisting}
+ 
+The Thunderbolt feature is described as a tristate variable that can be used to include or exclude a feature within the compilation process. While boolean variables can be used to either include or exclude features from compilation, tristate variables extend this by providing two alternatives for feature inclusion. With a tristate variable, a feature can either be excluded, linked into the kernel statically or dynamically loadable \cite{variabilitymodel-linux}. Other types of variables used in the KConfig language are integer and string.
+
+Thunderbolt support can only be selected if PCI has also been selected. Furthermore either X86 or COMPILE\_TEST have to be selected
+ 
+
+
+\todo{gconfig screenshot}
+\newpage
+
+
 \subsection{Software Product Line Analyses}
 
 \subsection{KernelHaven - an Analysis Infrastructure}\label{kernelhaven}
+
+KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor Software Product Lines \cite{KroeherEl-SharkawySchmid18} such as the Linux kernel. KernelHaven is able to handle three types of models: the code-, build-, and variabilitymodel. 
 
  An analysis in KernelHaven in most cases can be broken down to two phases: the extraction phase and the analysis phase. In the extraction phase, KernelHaven extracts models from the codebase. In the analysis-phase the resulting models are used to compute the analysis results. A configuration file defines where the codebase is located and provides settings for the extractors and analysis. From the standpoint of an analysis-developer, the configuration file directly defines the configuration for extractors and analysis. However the actual implementation within KernelHaven is more complex as the configuration is read and transferred into a Configuration-object that is then made available to extractors and analyses. For simplification purposes this process is not represented in detail within the illustration. 
 
@@ -185,7 +223,7 @@ Now the second option can be applied. Depending on the analysis that is performe
 \begin{req}[Working Base of Incremental Analysis]
 	\reqtable
 	{Must}  {Interview}
-	{The incremental analysis must work based on the current state of a repository and a proposed change}
+	{The incremental analysis must work based on the current state of a repository and a proposed change. }
 	{The working base of each incremental analysis is the previous state before a commit/code change. The increment is represented by the change introduced.}
 	
 	\begin{subreq}[Input Format for Incremental Analysis] \label{req:git-diff}
@@ -281,15 +319,15 @@ Now the second option can be applied. Depending on the analysis that is performe
 	\begin{subreq}[Incremental Dead Code Analysis Result Format] \label{req:format}
     \reqtable
     {Must}  {Interview}
-	{The result should be given in the same csv-format as implemented in the existing UnDeadAnalyzer\footnote{\url{https://github.com/KernelHaven/UnDeadAnalyzer}} plugin for Kernelhaven. If no new analysis is required, a message should be printed to the log and no new result-file must be generated as output.}
-	{Maintaining the same format as the non-incremental dead code analysis allows for comparability between incremental and non-incremental analyses. In contrast to non incremental analyses there might be situations where no new analysis is required. If that is the case, a message must be written to the log. However no new result-file has to be generated. \\
+	{The result should be given in the same csv-format as implemented in the existing UnDeadAnalyzer\footnote{\url{https://github.com/KernelHaven/UnDeadAnalyzer}} plugin for Kernelhaven.}
+	{Maintaining the same format as the non-incremental dead code analysis allows for comparability between incremental and non-incremental analyses. \\
 	\emph{Note: eventhough the csv-format remains unchangend, the contents of incremental and non-incremental result-files might differ (see REQ \ref{req:coverage})}}
 	\end{subreq}
 	
 	\begin{subreq}[Incremental Dead Code Analysis Result Coverage] \label{req:coverage}
     \reqtable
     {Must}  {Interview, feedback from presentation of initial concept}
-	{The analyis result should only contain elements that are results of the latest analysis increment}
+	{The analyis result should only contain elements that are results of the the latest analysis}
 	{As the analysis should provide feedback for the developer on his work, parts of the software system which could not have been affected by the changes he introduced do not need to be represented in the result. Therefore merging the result of the increment with previous results is not desired.}
 	\end{subreq}
 \end{req}
@@ -308,7 +346,7 @@ Now the second option can be applied. Depending on the analysis that is performe
 
 \begin{req}[Run existing KernelHaven-Analyses incrementally] 
 \reqtable
-    {May}  {Interview \\ \emph{Note: This requirement emerged after the implementation choice to use the KernelHaven infrastructure}}
+    {May}  {Interview \\ \emph{Note: This requirement emerged after the implementation choice to use the KernelHaven infrastructure was made}}
 	{It should be possible to run existing analyses incrementally without reimplementation.}
 	{Existing analysis plugins for KernelHaven have been written as non-incremental analyses. The adaptation of existing analyses removes the need to reimplement existing analyses. Furthermore the adaptation of existing plugins allows for performance evaluation of incremental analyses against non-incremental analyses.}
 \end{req}
@@ -328,7 +366,7 @@ By extending an existing infrastructure like KernelHaven, we can benefit from an
 
 While the Analysis- and Extraction-Phase as described in \autoref{concept} are also present for analyses implemented with the incremental infrastructure, there are additional mandatory tasks which get executed in two more phases - the Preparation-Phase and the Post-Extraction-Phase. The resulting four phases are visualized in \autoref{4-phases}.
 
-The Preparation-Phase is the first phase in an incremental analysis. Its purpose is to update the codebase and reduce the number of files that the extraction has to run on (see REQ \ref{req:early-filtering}. This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused. KernelHaven allows the configuration-object to define which files extractors run on. Therefore the configuration is not simply read from the configuration-file and passed on without modification but instead gets modified to only define a subset of the original files. This modification happens in the Preparation-Phase before the Extraction-Phase starts.
+The Preparation-Phase is the first phase in an incremental analysis. Its purpose is to update the codebase and reduce the number of files that the extraction has to run on (see REQ \ref{req:early-filtering}). This saves computational effort when running the extractors as some parts of the codebase  may not need to be processed again. Instead the result of previous extractions may be reused. KernelHaven allows the configuration-object to define which files extractors run on. Therefore the configuration is not simply read from the configuration-file and passed on without modification but instead gets modified to only define a subset of the original files. This modification happens in the Preparation-Phase before the Extraction-Phase starts.
 
  But even before any filtering on the artifacts in the codebase happens, the incremental infrastructure ensures that the codebase represents the increment that is to be analyzed. This is possible to achieve by using a git-diff file describing changes to the codebase (see REQ \ref{req:git-diff}). In order to allow for reuse of existing extractors, the changes need to be applied to the codebase on the filesystem as the extractor-plugins for KernelHaven work based on access to the filesystem and can not work with data streams.
 
@@ -463,7 +501,7 @@ However because of how KernelHaven handles the extraction of models, this requir
 
 An alternative to this approach would have been to provide multiple implementations for the Post-Extraction-Phase. As the extractors are started depending on the models defined in the constructor of the analysis, implementations similar to \texttt{IncrementalPostExtraction} covering each combination of code-, build- and variabilitymodel would have been required. This would have resulted in additional clutter from the classes themselves. Furthermore the PreparationPhase would always need to reconfigure the configuration so that the Post-Extraction-Implementation in use matches the models that need to be extracted. While this has the advantage that no changes to the main KernelHaven infrastructure would be neccessary, this option was disregarded in order to keep the implementaition clutter-free and concise.
 
-KernelHaven does not have configuration-options to directly block the extractors from running. However implementing such options was an option that is technically feasible as it solves the problem for \texttt{IncrementalPostExtraction}. While starting the extractors before the analysis requests results can be seen as an (now optional) optimisation, blocking extractor execution completely even if an analysis requires the model does contradict the design of KernelHaven where the analysis dictates which models it needs.
+KernelHaven does not have configuration-options to directly block the extractors from running. However implementing such options was an option that is technically feasible as it solves the problem for \texttt{IncrementalPostExtraction}. While starting the extractors before the analysis requests results can be seen as an optimisation option, blocking extractor execution completely even if an analysis requires the model does contradict the design of KernelHaven where the analysis dictates which models it needs.
 
 \subsubsection{Merging Extractor Results}
 
