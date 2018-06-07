@@ -168,10 +168,15 @@ However a file change does not necessarily result in changed variability informa
 
 While the described approach certainly makes sense for some scenarios, it does not suffice for others. If a file changes, it might affect the models of another file aswell if dependencies exist between those two files.
 
-Depending on whether or not the extraction logic includes those dependencies when building a model for a single file, different models might be computed for the same file even if the file itself is unchanged. An example for this is the extraction logic TypeChef \cite{Kenner:2010:TTT:1868688.1868693}. Typechef uses macro expansion to compute the models for each sourcefile and thereby includes information from other files. 
+Depending on whether or not the extraction logic includes those dependencies when building a model for a single file, different models might be computed for the same file even if the file itself is unchanged. An example for this is the extraction logic of TypeChef \cite{Kenner:2010:TTT:1868688.1868693}. Typechef uses macro expansion to compute the models for each sourcefile and thereby includes information from other files. 
 
-Therefore filtering for direct file changes or variability changes within a single file is not sufficient for every situation. Instead it might be necessary to also include files that have been affected by the change. In order to keep the concept for incremental analyses generic enough to cover those use cases, different filtering mechanism must be included. 
+Therefore filtering for direct file changes or variability changes within a single file is not sufficient for every situation. Instead it might be necessary to also include files that have been affected by the change. In order to keep the concept for incremental analyses generic enough to cover those use cases, different filtering mechanism must be included.
 
+However the extraction of a partial model is only possible if the extraction logic itself allows that. The existing code-model-extractors for KernelHaven  are able to run on a subset of files thereby extracting a partial model.  This is not the case for build-model and variability-model extractors. Those extractors are only able to either extract the complete model based on the entire codebase. Therefore as soon as one of the files changes, the entire model needs to be extracted.
+
+At the end of the extraction process, the complete code-, build- and variabilitymodel can be provided by merging the extracted parts with the models representing the previous state of the codebase. This allows the analysis to have full access to the models eventhough the computational effort was reduced for the extraction itself.
+
+Now the second option can be applied. Depending on the analysis that is performed in the Analysis-Phase, it is possible that only a part of the models must be processed because the analysis-results for the other parts were unaffected by the changes to the codebase. The Dead Code Analysis is an example for an analysis that is able to work based on a partial code-model. The implementation of the Dead Code Analysis  is described in \autoref{incremental-dead-code-analysis}
 
 
 \clearpage
