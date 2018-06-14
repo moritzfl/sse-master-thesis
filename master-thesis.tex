@@ -124,47 +124,102 @@ Christian K\"oher
 
 \todo{Nicht vergessen: Aufbau der Arbeit erneut beschreiben}
 
+\clearpage
 \section{Background}
-\subsection{Software Product Lines}
 
-When starting a new software project from scratch, one approach is to write code specifically for that project. The codebase and the documentation are tailored to the needs and requirements currently at hand. And when another project comes along, you do the same thing there. However it might turn out that those two projects technically share common functionality eventhough each product has features that the other doesn't.
+This chapter provides an introduction to related topics that the reader should be aware of. \todo{hier mehr Text vor dem ersten Unterkapitel}
+In this section, the reader will be provided with a general introduction to Software Product Lines and the Linux kernel Product Line specifically. This lays the foundation for understanding analyses on Software Product Line. Finally and before diving into the concepts of incremental analyses in the following chapters, the software project KernelHaven is introduced as an infrastructure for performing analyses on Software Product Lines. KernelHaven itself will be used as the foundation for the practical implementation of our approach.
+
+\subsection{Software Product Lines}\label{spl}
+
+When starting a new software project from scratch, one approach is to write code specifically for that project. The codebase and the documentation are tailored to the needs and requirements currently at hand. And when another project comes along, you do the same thing there. However it might turn out that those two projects technically share common functionality eventhough each product has features that the other does not.
 
 Instead of writing code for one project specifically it might have made sense to create something that is configurable to cover multiple use cases. Then for the next project it would be possible to combine and configure existing developed artifacts. And after some more projects it is perhaps even possible to realize a new product just by configuring and combining the assets that have already been created. This is where Software Product Lines come in. In contrast to traditional software development, Software Product Lines aim to reuse existing assets instead of writing software from scratch.
 
+Software Product Lines use engineering techniques for creating a portfolio of similar systems from a shared set of software assets \cite{intro-spl}. This differenciates Software Product Lines from software systems with \emph{opportunistic} reuse. \emph{Oppurtunistic} reuse of single components occurs in many software projects where parts of an developed system are reused by other components or included as library within other projects. However Software Product Lines are actively built for reuse, thereby employing a \emph{predictive} reuse system, that directly aims for future products to be able to reuse created assets.
 
-\subsubsection{The Linux Kernel}\label{linux-kernel}
+While considering configurability and reusability of assets when developing a single product results in a higher initial effort, the break even point is usually reached after about three products. Therefore incorporating the principles of Software Product Lines is advantageous when multiple system are able to share the same assets. Through the reuse of existing assets across multiple products, the development, maintainance and documentation effort is drastically reduced. Furthermore a new product is most likely more reliable and secure as it can be built directly on top of mature components  \cite[p.4f]{spl-in-action}.
 
-A prominent example for a Software Product Lines in the open source space is the Linux kernel. The Linux Kernel provides more than 10.000 configurable features \cite{Tartler:2011:FCC:1966445.1966451}. Linux uses a language called KConfig to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. In Software Product Lines, a characteristic that exists in some but not all products of a product line is called a Variability. Because Linux uses KConfig to define features that may vary for different product configurations, the KConfig files of the linux kernel represent a model of the variability within the kernel.
+There are three types of features within Software Product Lines, that can be differenciated\cite[p.8]{spl-in-action}:
+\begin{description}
+\item[Commonality]  A feature that is shared across all members of the product line.
+\item[Variability]  A feature that is included in some, but not all members of the product line.
+\item[Product-specific]  A feature that is only included within one product. 
+\end{description}
 
-The following code shows an examplary definition of a feature within a KConfig file:
+Software Product lines aim to keep product-specific implementations to a minimum as the goal is to enable the reuse of components wherever possible. However individual adjustments must be possible if required for a specific customer. The features within a software product line can be visualized using a feature model diagram as shown in \autoref{featuremodel}. 
 
-\begin{lstlisting}{language=KConfig}
-config THUNDERBOLT
-	tristate "Thunderbolt support"
-	depends on PCI
-	select APPLE_PROPERTIES if EFI_STUB && X86
-	select CRC32
-	select NVMEM
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Feature Model]{Feature Model: Example}\label{featuremodel}
+    \includegraphics[width=1\textwidth]{img/featuremodel.pdf}
+  \end{minipage}
+\end{figure}
+
+In the example, the operating system has to include support for a CPU through either a 32-Bit or 64-Bit option. While CPU-Support itself is a mandatory feature, the choice between the 32-Bit and 64-Bit option is an exclusive one. When choosing one option, the other option can not be included. The selection of both Network Authentication and LocalAuthentication is however possible for the User Authentication feature as the choice between them is not exclusive. However Network Authentication requires the selection of Network Support which would otherwise be an optional feature. The feature model is one example of how variability within a Software Product Line can be represented. Another textual representation of variability will be introduced in section \ref{linux-kernel} in the context of the Linux kernel Product Line. 
+
+Models of variability represent configuration options within a Software Product Line. However the variability model does not represent how configured options are translated into the final product. In order to cover this process as well, we use two other models, the build and the code model. The consideration of three components related to variability within a product line can also be found in previous works eventhough different names have been used to describe them \cite{nadi-linux-kernel} \cite{mining-kbuild} \cite{KroeherEl-SharkawySchmid18}.
+
+The build model represents how the build systems how a concrete configuration is realized when building a product. A build system automates the process of program compilation. Their primary task is to create executables. For the build system of Software Product Line this means that it can carry the responsibility for selecting or even modifying compilation targets according to a concrete configuration. Following our example, the source-files related to the Network Support feature only need to be included into the build when the feature has been selected. The generic elements for the CPU-Support Feature on the other hand must be included at all times as they are a commonality for the product line. 
+
+It is worth noting that the direct inclusion or exclusion of codefiles for compilation is not the only option for achieving variability within a product. Another option is to have features selectable when executing the final product. It is for example possible to include more than one user interface for the same product and allow the user to select his preference even after the system has been compiled. The difference here is the binding time of the feature. The compile-time variability is decided before or at compilation time while load-time and run-time variability allow to define customized behaviour during startup or execution \cite[p.49]{Apel:2013:FSP:2541773}.
+
+Finally different behaviours for different configured options may also be defined through the sourcecode. This can be achieved through conditional compilation. In conditional compilation, compiler directives are used to include or exclude code sections from compilation. Those directives allow it to incorporate the selection or deselection of a certain feature for the selection or deselection of code sections. Not all programming languages use specific directives: In Java, the compiler recognizes if statements that always evaluate to false and ignores the encapsuled code for compilation.
+
+In this section, we covered Sofware Product Lines and gave an idea of how variability within a software project can be achieved. In the following section, we will take a closer look at how variability is incorporated in the Linux Kernel project.
+
+\subsection{The Linux Kernel}\label{linux-kernel}
+
+A prominent example for a Software Product Line in the open source space is the Linux Kernel. The Linux Kernel handles variability utilizing the conditional compilation of the C-Preproecessor as a core component. When implementing incremental analyses, we will rely on KernelHaven \cite{KroeherEl-SharkawySchmid18} as an existing software project that is able to work with C-preprocessor Software Product Lines that is introduced in section \ref{kernelhaven}. Eventhough other C-preprocessor Software Product Lines exist, many product lines stem from a commercial context. In order to enable the reproduction of our results as well as accessibility to the components used for this work, the Linux Kernel was chosen as target for evaluating the developed incremental analysis. The Linux kernel itself comes with more than 10.000 configurable features \cite{Tartler:2011:FCC:1966445.1966451}. 
+
+\todo{modify figure with make space, remove numbers}
+
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Linux build process]{Linux build process \cite{Tartler:2011:FCC:1966445.1966451}}\label{linux-build}
+    \includegraphics[width=1\textwidth]{img/linux-build.png}
+  \end{minipage}
+\end{figure}
+
+
+Linux uses a language called KConfig to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. Because Linux uses KConfig to define features and their dependencies, the KConfig files of the linux kernel represent the variabiltiy model of the kernel.
+
+
+\begin{lstlisting}{language=KConfig}[caption=KConfig Language, label=kconfig]
+config NETWORK_AUTHENTICATION
+	bool "Network Authentication"
+	depends on USER_AUTHENTICATION
+	select NETWORK_SUPPORT
+	select REMOTE_USER_FOLDER_SUPPORT if NETWORK_STORAGE_SUPPORT
+	default y
 	help
-	  Thunderbolt Controller driver...
- \end{lstlisting}
+	  Support for network authentication ...
+\end{lstlisting}
  
-The Thunderbolt feature is described as a tristate variable. Tristate variables can be used to include or exclude features from the compiled product. With a tristate variable, a feature can either be excluded, linked into the kernel statically, or be dynamically loadable \cite{variabilitymodel-linux}. Therefore tristate variables offer an additional option compared to boolean variables that only allow to include or exclude a feature during compileation. Other types of variables used in the KConfig language are integer and string.
+Building on top of the example shown in \autoref{featuremodel} in \ref{spl}, \autoref{kconfig} shows how KConfig can be used to describe the variabilitymodel. The example uses a boolean variable that allows for either inclusion or exclusion of a feature in the configured product. However Kconfig also offers an alternative option for including or excluding a feature: Tristate variables allow a feature to either be excluded, linked into the kernel statically, or be dynamically loadable \cite{variabilitymodel-linux}. Therfore the KConfig language allows the description of the binding time for a certain feature. Other types of variables used in the KConfig language are integer and string.
 
-Thunderbolt support can only be selected if PCI has also been selected as THUNDERBOLT depends on this feature. If THUNDERBOLT is selected for inclusion in the compiled product, the features prefaced with \texttt{select} are automatically included aswell. It is also possible to define more complex condition for \texttt{select} or \texttt{depends on} entries where the selection of a feature not only depends on THUNDERBOLT but on other features aswell. In the example above, this is the case for APPLE\_PROPERTIES which only gets selected if EFI\_STUB and X86 are selected as well. 
+NETWORK\_AUTHENTICATION can only be selected if USER\_AUTHENTICATION has also been selected as NETWORK\_AUTHENTICATION depends on this feature. If NETWORK\_AUTHENTICATION is selected for inclusion in the compiled product, the features prefaced with \texttt{select} are automatically included aswell. It is also possible to define more complex condition for \texttt{select} or \texttt{depends on} entries where the selection of a feature depends on more than one feature. In this instance REMOTE\_USER\_FOLDER\_SUPPORT is automatically selected if the NETWORK\_STORAGE\_SUPPORT feature is also configured to be included.
 
-Finally, help defines a text to provide the configuring user with information about the feature. This text is used in user interfaces for configuring the linux kernel. The tool menuconfig is shown below as an example for such an user-interface is shown below.
+Finally, help defines a text to provide the configuring user with information about the feature. This text is used in user interfaces for configuring the linux kernel. The tool menuconfig as an example for such an user-interface is shown in \autoref{menuconfig}.
 
-\todo{menuconfig screenshot}
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{1\textwidth} 
+    \caption[Menuconfig Screenshot]{Configuration of the Linux kernel through menuconfig}\label{menuconfig}
+    \includegraphics[width=1\textwidth]{img/menuconfig.png}
+  \end{minipage}
+\end{figure}
 
-The output generated through a KConfig configuration tool is a .config file representing a concrete configuration. This file can is then used to generate a C header file and a Makefile. Those files (autoconf.h and auto.make) define macros for the C-preprocessor and define variables for each selected KConfig feature \cite{Tartler:2011:FCC:1966445.1966451}. The variables for parameter represented within KConfig start with CONFIG\_ by convention.
+
+The output generated through a KConfig configuration tool is a .config file representing a concrete configuration. This file is then used to generate a C header file and a Makefile. Those files (autoconf.h and auto.make) define macros for the C-preprocessor and define variables for each selected KConfig feature \cite{Tartler:2011:FCC:1966445.1966451}. The variables for parameters represented within KConfig start with CONFIG\_ by convention.
 
 The Kbuild build system for the linux kernel uses the generated files representing the configuration together with Kbuild makefiles to define which sourcefiles to include for compilation. 
 
 A kbuild makefile tells the build system which objects in the directory to include for compilation. The build tool recursively processes the directories of the codebase.
 
 The sourcefiles themselves (*.c and *.h files) contain variabiltiy information in the form of ifdef-blocks that are evaluated by the C-preprocessor. The preprocessor thereby includes or excludes lines of code within a  sourcefile.
-
 
 \begin{lstlisting}
 # ifdef CONFIG_SUPERH32
@@ -182,11 +237,9 @@ The variability of the software product line is expressed through the three comp
 	\item sourcefiles
 \end{itemize}
 
-Speaking in a more abstract manner, the KConfig system represents a variability-model that defines configuration options and their dependencies. KBuild on the other hand determines how a configuration is mapped to sourcefiles when building a concrete product therby representing. Thereby the KBuild system represents the build-model for the Linux kernel. Finally the sourcefiles define which parts within each sourcefile get included for compilation. Therefore the sourcefiles represent a third model is called the code-model.
+Speaking in a more abstract manner, the KConfig system represents a variability-model that defines configuration options and their dependencies. KBuild on the other hand determines how a configuration is mapped to sourcefiles when building a concrete product. Thereby the KBuild system represents the build-model for the Linux kernel. Finally the \texttt{\#ifdef}-blocks within sourcefiles define which parts within each sourcefile get included for compilation. Therefore the sourcefiles represent a third model which is called the code-model.
 
 Those three models can be used to perform analyses on Software Product Lines. An overview over analyses for Software Product Lines is presented in the next section.
-
-
 
 \newpage
 
@@ -195,26 +248,24 @@ Those three models can be used to perform analyses on Software Product Lines. An
 \todo{describe Software Product Line Analyses}
 
 \newpage
-\subsection{KernelHaven - an Analysis Infrastructure}\label{kernelhaven}
+\subsection{KernelHaven - An Analysis Infrastructure}\label{kernelhaven}
 
-KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor Software Product Lines\cite{KroeherEl-SharkawySchmid18} such as the Linux kernel. Therefore KernelHaven needs to be able to handle the build-, variability and codemodel as introduced in \autoref{linux-kernel}.
+KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor Software Product Lines\cite{KroeherEl-SharkawySchmid18} such as the Linux kernel. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in section \ref{implementation}. 
 
-KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. 
+Before diving into technical details, the some of the terminology used for the remainder of this work needs some clarification. The set of all files  that represent a software system and are used as input for an analysis will be referred to as the codebase. The codebase therefore includes files containing source code as well as files defining the build process or configuration-options. Referring to the Linux-Kernel as an example this would mean all files within the Linux repository for single revision of the kernel.
+The term sourcefile or codefile on the other hand refers to a file that contains source-code. For the Linux kernel this would mean all *.c and *.h files. Finally variability model files and build model files are files within the codebase that relate to the respective models. For Linux this means that the files of the KBuild-system are considered variability model files, while files of the KConfig system are considered to be variability model files.
 
-Extractors and Analyses are configured as a pipeline through the PipelineConfigurator which uses a configuration-file as to defines the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. An overview over the KernelHaven-Pipeline structure is shown in \autoref{pipeline}.
+An overview over the KernelHaven-Architecture structure is shown in \autoref{pipeline}. Because KernelHaven targets C-preprocessor Software Product Lines, it needs to be able to process build-, variability and codemodel. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the PipelineConfigurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. 
 
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[KernelHaven-Pipeline]{KernelHaven-Pipeline \cite{KroeherEl-SharkawySchmid18}}\label{pipeline}
+    \caption[KernelHaven-Pipeline]{KernelHaven-Architecture \cite{KroeherEl-SharkawySchmid18}}\label{pipeline}
     \includegraphics[width=1\textwidth]{img/KernelHaven-Pipeline.png}
   \end{minipage}
 \end{figure}
 
 By using a custom configuration-file, the user is able to configure existing Extractors and Analyses to suit his needs. However KernelHaven is also meant to be easily extendeable for developers and and therefore provides the possibility to extend the infrastructure through plugins.
-
-
-\subsubsection{KernelHaven Plugins}
 
 KernelHaven can be extended through three types of plugins:
 
@@ -228,93 +279,108 @@ All of the plugins do not require adjustments to the main KernelHaven infrastruc
 
 A preparation-plugin can define tasks that get executed before the KernelHaven-Pipeline is started. This can for example be useful for preprocessing inputs. Furthermore a PreparationPlugins allows to apply modifications to the configuration-object before the object is used by Extractor or Analysis-Plugins. However if no tasks need to be performed prior to the execution of the pipeline, no Preparation-Plugin needs to be defined for execution. 
 
-Extractor-Plugins on the other hand are required to generate the models that the analysis can run on. There are three types of extractors: code-model extractors, variability-model extractors and build-model extractors. Different extractors may work based on different files within the codebase. Furthermore their results may vary even if the same codebase was analyzed. This becomes clear when looking at two of the existing extractors for the Code-Model. The TypeChef-Extractor based on the TypeChef-tool \cite{Kenner:2010:TTT:1868688.1868693} uses macro expansion during the extraction of models from *.c files while the UndertakerExtractor based on the Undertaker-tool \cite{Tartler:2011:FCC:1966445.1966451} does not. And while reusing parts of existing implementations is a great way to extend the KernelHaven infrastructure, not all implementations may put enough focus the  aspects that you value. The CodeBlockExtractor \cite{CodeBlockExtractor} has been built from ground up as a pure java-implementation. One of its core benefits is improved performance compared to the UndertakerExtractor and TypeChefExtractor. Furthermore it is licensed under a permissive license while the UndertakerExtractor and TypeChefExtractor are license under the terms of the GPL\cite{GNU-645}.
+Extractor-Plugins on the other hand are required to generate the models that the analysis can run on. There are three types of extractors: code-model extractors, variability-model extractors and build-model extractors. Different extractors may work based on different files within the codebase. Furthermore the results of two different extractors for the same type of model may vary even if the same codebase was analyzed. This becomes clear when looking at two of the existing extractors for the code-model. The TypeChef-Extractor based on the TypeChef-tool \cite{Kenner:2010:TTT:1868688.1868693} extracts a complete abstract syntax tree and uses macro expansion during the extraction of models from *.c files. The UndertakerExtractor based on the Undertaker-tool \cite{Tartler:2011:FCC:1966445.1966451} generates a representation of structure of \texttt{\#ifdef}-blocks.
 
-While the KernelHaven infrastructure benefits from a selectionvarious extractors for the code-model, only one extractor is available for each the build- and the variabilitymodel \cite{KernelHave-wh}. The buildmodel can be extracted using the KconfigReaderExtractor based on the KConfigReader-tool \cite{ck-kconfig} while the codemodel con be extracted through the KBuildMinerExtractor using the KbuildMiner-tool \cite{ck-kbuild}.
+While the KernelHaven infrastructure benefits from a selection of various extractors for the code-model, only one extractor is available for the build- and another for the variabilitymodel \cite{KernelHave-wh}. The buildmodel can be extracted using the KconfigReaderExtractor based on the KConfigReader-tool \cite{ck-kconfig} while the codemodel can be extracted through the KBuildMinerExtractor using the KbuildMiner-tool \cite{ck-kbuild}.
 
-Both the KbuildMinerExtractor and the KconfigReaderExtractor are only able to extract the complete model represented through the codebase. This is not the case for the codemodelextractors which may also be configured to only process a subset of the files within the codebase. This is because the codemodel-extractor is able to individually process each sourcefile as it looks for \texttt{ifdef}-blocks within the file. Through header-files, extractors like the TypeChefExtractor might also consider other files when parsing one sourcefile. Nevertheless an individual model for each sourcefile is generated. This is not the case for KBuild and KConfig-files as the KBuild and KConfig-System both process complex dependencies that are spread between multiple files. Therefore the build- and variablity-model are built viewing the information from all KConfig and KBuild-files in total and not by looking at one individual file at a time. 
+Both the KbuildMinerExtractor and the KconfigReaderExtractor are only able to extract the complete model represented through the codebase. This is not the case for the codemodelextractors which may also be configured to only process a subset of the files within the codebase. This is because the codemodel-extractor is able to individually process each sourcefile. Through header-files, extractors like the TypeChefExtractor might also consider other files when parsing one sourcefile. Nevertheless an individual model for each sourcefile is generated. This is not the case for KBuild and KConfig-files as the KBuild and KConfig-System both process complex dependencies that are spread between multiple files. Therefore the build- and variablity-model are built viewing the information from all KConfig and KBuild-files in total and not by looking at one individual file at a time.
 
-Extractors may be configured too write extracted models to a cache-directory in order to reuse them for subsequent extectutions of KernelHaven removing the need to extract them again.
+Extractors may be configured to write extracted models to a cache-directory in order to reuse them for subsequent extectutions of KernelHaven removing the need to extract them again. Therefore KernelHaven does not necessarily require extractors to run for each execution of KernelHaven if the models already have been extracted before.
 
-Finally Analysis-Plugins define the analysis that uses the extracted models. In order to ease the implementation of Analysis-Plugins, the plugins themselves do not have to take care of where the models come from. An analysis simply defines which models it needs and the corresponding extractors get started accordingly. This lets an analysis-developer focus directly on the work with the models themselves. Initially KernelHaven Analysis were single components that always processed the models directly. While the option to implement such an Analysis-Plugin still exists, KernelHaven also offeres the possiblity to implement AnalysisComponents that can be reused and combined to run after each other. This allows the result of one AnalysisComponent to be processed by the next one. However only one result may be passed on to the next AnalysisComponent and only the first AnalysisComponent has access to the models. In order to provide a simple means of rearranging and recombining analysis components, a custom domain specific language is implemented in KernelHaven allowing to define chains of AnalysisComponents from within the configuration-file itself. In case the desired combination of AnalysisComponents requires intermediate tasks and does allow to simply pass on the result of one component to the next, AnalysisComponents may also be combined through java-code thereby. This further improves the possibility for reuse of AnalysisComponents even if it requires to write custom code.
+Finally Analysis-Plugins define the analysis that uses the extracted models. In order to ease the implementation of Analysis-Plugins, the plugins themselves do not have to take care of where the models come from. An analysis simply defines which models it needs and the corresponding extractors get started accordingly. This lets an analysis-developer focus directly on the work with the models themselves. Initially KernelHaven Analysis-Plugins  were single components that always processed the models directly. While the option to implement such an Analysis-Plugin still exists, KernelHaven also offeres the possiblity to implement AnalysisComponents that can be reused and combined to run after each other. An analysis that consits of such components is called a PipelineAnalysis. A PipelineAnalysis allows the result of one AnalysisComponent to be processed by the next one.  However only one result may be passed on to the next AnalysisComponent and only the first AnalysisComponent has access to the models. In order to provide a simple means of rearranging and recombining analysis components, a custom domain specific language is implemented in KernelHaven allowing to define chains of AnalysisComponents from within the configuration-file itself. In case the desired combination of AnalysisComponents requires intermediate tasks and does allow to simply pass on the result of one component to the next, AnalysisComponents may also be combined through java-code. This further improves the possibility for reuse of AnalysisComponents even if it requires to write custom code.
 
 The KernelHaven main projects start page on github offers an overview over existing plugins. Later in this work, we will rely on exsiting AnalysisComponents within the UndeadAnalyzer-Plugin to implement an incremental Dead Code Analysis.
 
 Of course any new plugin-implementation may reuse AnalysisComponents from other plugins aswell. Furthermore utility-plugins exist that do not satify any plugin-interface of KernelHaven directly but offer functionality to other plugins to ease their implementation. The UndeadAnalyzer for example relies on the CnfUtils plugin to provide SAT-solving capabilities.
 
 \newpage
-\section{Concept for Incremental Analyses}
+\section{Concept for Incremental Analyses}\label{concept}
 
 KernelHaven and other software tools such as Undertaker\cite{Tartler:2011:FCC:1966445.1966451} currently allow to analyze a given codebase in its entirety. When changes to the codebase are introduced, the entire codebase must be analyzed again resulting in costly computations. This is because the model-extraction has to be redone and the subsequent analysis has to redo the computation for the new models. Assuming that an analysis consists of model-extraction and subsequent computations based on the extracted models, we are presented with two options to reduce computational effort:
 
 \begin{enumerate}
 	\item Reduction of computational effort for the extractors \\
 	\emph{Extraction does not need to happen on the entire codebase - only the parts that changed dictate what to extract}
-	\item Reduction of computational effort for the computations performed on the extracted models \\
+	\item Reduction of computational effort for the analysis performed on the extracted models \\
 	\emph{Models do not need to be processed again completely - only the parts that changed dictate what to process}
 \end{enumerate}
+
+We refer to an analysis that utilizes one or both of those measures to reduce the computational effort when changes are introduced as an incremental analysis.
 
 The first option can be achieved by the filtering of input files so that only files that were affected by changes need to be extracted. The most trivial possibility to reduce effort is to define that where a file was left unmodified, no new extraction needs to happen. 
 However a file change does not necessarily result in changed variability information - and as models are extracted to obtain variability information, files where that information did not change can also be excluded. Filtering files based on changed variability further reduces the computational effort for obtaining the models. This kind of filtering can be used when every file is handled isolated from other files within the extraction logic.
 
-While the described approach certainly makes sense for some scenarios, it does not suffice for others. If a file changes, it might affect the models of another file aswell if dependencies exist between those two files.
+While the described approach certainly makes sense for some scenarios, it does not suffice for others. If a file changes, it might affect the models of another file aswell if dependencies exist between those two files. Depending on whether or not the extraction logic includes those dependencies when building a model for a single file, different models might be computed for the same file even if the file itself is unchanged. An example for this is the extraction logic of TypeChef \cite{Kenner:2010:TTT:1868688.1868693}. Typechef uses macro expansion to compute the models for each sourcefile and thereby includes information from other files. 
 
-Depending on whether or not the extraction logic includes those dependencies when building a model for a single file, different models might be computed for the same file even if the file itself is unchanged. An example for this is the extraction logic of TypeChef \cite{Kenner:2010:TTT:1868688.1868693}. Typechef uses macro expansion to compute the models for each sourcefile and thereby includes information from other files. 
-
-Therefore filtering for direct file changes or variability changes within a single file is not sufficient for every situation. Instead it might be necessary to also include files that have been affected by the change. In order to keep the concept for incremental analyses generic enough to cover those use cases, different filtering mechanism must be included.
-
-However the extraction of a partial model is only possible if the extraction logic itself allows that. The existing code-model-extractors for KernelHaven  are able to run on a subset of files thereby extracting a partial model.  This is not the case for build-model and variability-model extractors. Those extractors are only able to either extract the complete model based on the entire codebase. Therefore as soon as one of the files changes, the entire model needs to be extracted.
+Therefore filtering for direct file changes or variability changes within a single file is not sufficient for every situation. Instead it might be necessary to also include files that have been affected by the change. In order to keep the concept for incremental analyses generic enough to cover those use cases, different filtering mechanism must be applicable. However the extraction of a partial model is only possible if the extraction logic itself allows that. The existing code-model-extractors for KernelHaven  are able to run on a subset of files thereby extracting a partial model.  As already mentioned in section \ref{kernelhaven}, this is not the case for build-model and variability-model extractors. Therefore as soon as one of the related files changes, the entire model needs to be extracted. While we initially excluded
 
 At the end of the extraction process, the complete code-, build- and variabilitymodel can be provided by merging the extracted parts with the models representing the previous state of the codebase. This allows the analysis to have full access to the models eventhough the computational effort was reduced for the extraction itself.
 
-Now the second option can be applied. Depending on the analysis that is performed in the Analysis-Phase, it is possible that only a part of the models must be processed because the analysis-results for the other parts were unaffected by the changes to the codebase. The Dead Code Analysis is an example for an analysis that is able to work based on a partial code-model. The implementation of the Dead Code Analysis  is described in \autoref{incremental-dead-code-analysis}.
+Now the second option can be applied. Depending on the analysis that is performed, it is possible that only a part of the models must be processed because the analysis-results for the other parts were unaffected by the changes to the codebase. The Dead Code Analysis is an example for an analysis that is able to work based on a partial code-model. The implementation of the Dead Code Analysis is described in \autoref{incremental-dead-code-analysis}.
 
 
 \clearpage
 \section{Requirements for the Software System}
 
-\begin{req}[Working Base of Incremental Analysis]
+This section lists the requirements for the developed software system that enables incremental analyses. The developed system consists of an infrastructure for incremental analyses as well as an concrete implementation of an incremental dead code analysis for this infrastructure.
+
+The information on each requirement broken down to four fields:
+
+\begin{description}
+    \item [Priority]
+	This describes the priority of a requirement. The priority is given through the keywords Must, Should and May. The usage of the definitions takes RFC 2119 \cite{RFC-bum} as a guideline. Therefore \underline{Must} describes a requirement that has to be implemented. \underline{Should} indicates that the implemenentation of the requirement is strongly desired. Not fulfilling a Should requirement  does however still result in an acceptable overall system if the Must requirements are met. Finally \underline{May} indicates a truely optional requirement. Those requirements represent additions to the system that are considered useful but at the same time are not valued as high as Must or Should requiirements.
+    \item [Source]
+    The Source-field describes the origin of the requirement.
+    \item [Description]
+    this field provides a description of the requirement.
+    \item [Explanation]
+    Explanation provides further deatail on the requirement and may additionally provide reasoning as to why the requriement is included.
+\end{description}
+
+\begin{req}[Working Base of an Incremental Analysis]
 	\reqtable
 	{Must}  {Interview}
-	{The incremental analysis must work based on the current state of a repository and a proposed change. }
+	{An incremental analysis must work based on the current state of a repository and a proposed change. }
 	{The working base of each incremental analysis is the previous state before a commit/code change. The increment is represented by the change introduced.}
 	
-	\begin{subreq}[Input Format for Incremental Analysis] \label{req:git-diff}
+	\begin{subreq}[Input Format for an Incremental Analysis] \label{req:git-diff}
 		\reqtable
 		{Must}  {Interview}
-		{The input must be a git-diff. Furthermore a filebase upon which the diff can be applied is required.}
-		{The main input for the analysis is a git-diff. This diff represents a changeset that is to be analysed.}
+		{The input must be a git-diff file. Furthermore a codebase upon which the changes described in the git-diff file can be applied is required.}
+		{The main input for the analysis is a git-diff file. This diff represents a changeset that is to be analysed.}
 	\end{subreq}
 \end{req}
 
 \begin{req}[Covered Analysis-Types]
 	\reqtable
 	{Must}  {Initial Description, Interview}
-	{The incremental analysis must support block-based analyses.}
+	{The developed system must support block-based analyses. }
 	{}
 	
-	\begin{subreq}[Input Format for Incremental Analysis] \label{req:git-diff}
-		\reqtable
-		{Must}  {Interview}
-		{The input must be a git-diff}
-		{The main input for the analysis is a git-diff. This diff represents a changeset that is to be analysed.}
-	\end{subreq}
 \end{req}
 
 
-\begin{req}[Filtering of Source Files] \label{req:early-filtering}
+\begin{req}[Filtering of Extractor Input] \label{req:early-filtering}
 \reqtable
 	{Must}  {Interview}
-	{The set of source files upon which the analysis operates should be reduced before being passed to the extractors.}
-	{Because extraction is costly, the filtering of artifacts must happen on a file basis before the extractors are called.}
+	{The set of files within the codebase upon which the extractors operate should be reduced before being passed to the extractors.}
+	{Because extraction is costly, the filtering of artifacts must happen before the extractors are called.}
 \end{req}
+
+\begin{req}[Processing of Partial Models] \label{req:early-filtering}
+\reqtable
+	{Must}  {Interview}
+	{It must be possible for Analysis-Plugins to process partial models in order to reduce the computational effort.}
+	{In order to reduce the execution time of an analysis as described in section \ref{concept}, mechansims need to be implemented that allow it to process partial models.}
+\end{req}
+
 
 \clearpage
 \begin{req}[Configuration of Filters for Input-Files] \label{req:optimization}
 \reqtable
 	{Must}  {Initial Description}
 	{
-	The implemented infrastructure must provide means to configure different filters for the files that are to be analyzed.
+	The implemented infrastructure must provide means to configure different filters for the input.
     }
 	{Depending on the extractor in use and the way it processes input files, different options cover different use cases. Furthermore different filters may affect the overall performance of the software system.}
 
@@ -363,7 +429,7 @@ Now the second option can be applied. Depending on the analysis that is performe
 \begin{req}[Incremental Dead Code Analysis] 
 \reqtable
 	{Must}  {Initial description}
-	{An incremental dead code analysis must be integrated in the software system}
+	{An incremental dead code analysis must be implemented}
 	{The dead code analyis serves as a practical example for block based analyses. It is used to demonstrate and evaluate the effectiveness of the incremental approach.}
 	
 	
@@ -394,19 +460,16 @@ Now the second option can be applied. Depending on the analysis that is performe
 \end{req}
 
 
-
-
-
 \begin{req}[Run existing KernelHaven-Analyses incrementally] 
 \reqtable
-    {May}  {Interview \\ \emph{Note: This requirement emerged after the implementation choice to use the KernelHaven infrastructure was made}}
+    {Should}  {Interview \\ \emph{Note: This requirement emerged after the implementation choice to use the KernelHaven infrastructure was made}}
 	{It should be possible to run existing analyses incrementally without reimplementation.}
 	{Existing analysis plugins for KernelHaven have been written as non-incremental analyses. The adaptation of existing analyses removes the need to reimplement existing analyses. Furthermore the adaptation of existing plugins allows for performance evaluation of incremental analyses against non-incremental analyses.}
 \end{req}
 
 \newpage
 
-\section{Implementation of Incremental Analyses}
+\section{Implementation of Incremental Analyses}\label{implementation}
 
 This section describes the implemented infrastructure for incremental analyses and provides reasoning for the decisions made when engineering the infrastructure. The term 'incremental analyses' will henceforth be used as shorthand for  'block based incremental analyses' as other types of analyses are not targeteted by the infrastructure.
 
@@ -414,21 +477,20 @@ The infrastructure itself is based on KernelHaven\cite{KernelHaven} as KernelHav
 
 By extending an existing infrastructure like KernelHaven, we can benefit from an existing codebase as well as future developments within the KernelHaven project. Furthermore future users of the incremental infrastructure can adjust existing non-incremental analyses written for KernelHaven to run as incremental analyses.
 
-\subsection{Two Phases of non-incremental Analyses}\label{2-phases}
+\subsection{Two Phases of Non-Incremental Analyses}\label{2-phases}
 
-The execution of an analysis in KernelHaven in most cases can be broken down to two mandatory phases: the Extraction-Phase and the analysis phase. In the extraction phase, KernelHaven extracts models from the codebase  (or alternatively reads them from the cache). In the Analysis-Phase the resulting models are used to compute the analysis results. A simplified view of those phases is presented in the figure below.
+The execution of an analysis in KernelHaven in most cases can be broken down to two mandatory phases: the Extraction-Phase and the Analysis-Phase. In the extraction phase, KernelHaven extracts models from the codebase  (or alternatively reads them from the cache). In the Analysis-Phase the resulting models are used to compute the analysis results. A simplified view of those phases is presented in \autoref{2-phases-image}.
 
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[Analysis Developer Viewpoint]{Analysis Developer Viewpoint}\label{2-phases-image}
+    \caption[Non-Incremental Analysis: Two Phases]{Non-Incremental Analysis: Two Phases}\label{2-phases-image}
     \includegraphics[width=1\textwidth]{img/KernelHaven.pdf}
   \end{minipage}
 \end{figure}
 
-This simplified view only includes mandatory tasks that need to be performed for every non-incremental analysis in KernelHaven.
 
-While this view does ignore some technical aspects, it focuses on the core aspects of an analysis execution making it easier to understand the required modifications for performing incremental analyses. In the next section, this model will be extended to suit incremental analyses. 
+While this view does ignore some technical aspects, it focuses on the core aspects of an analysis execution. Therefore it also does not try to replicate the configuration mechanism of KernelHaven and instead only visualizes the configuration of the pipeline components as a direct result of the configuration file. This simplification makes it easier to understand the required modifications for performing incremental analyses. Those modifications will be presented in the next section.
 
 \subsection{Four Phases of an Incremental Analysis}
 
@@ -699,24 +761,46 @@ To automate the generation of results, a collection of bash-scripts\footnote{\ur
 
 \subsection{Early Evaluation results}
 
-The evaluation was initially started with a reference run which was compared to the results of analyses representing the variability-change-only and a change-only options described in REQ \ref{req:mandatory-filters}.
+The evaluation uses the results of a non-incremental dead code analysis as reference.  The reference was compared against two incremental analyses configured according to the variability-change-only and a change-only options described in REQ \ref{req:mandatory-filters}.
 
 When running the evaluation for the first time, some issues were identified that needed to be fixed. Therefore the results of the incrmental executions were not entirely consistent with the reference. However they were close enough to assume that resolving those issues would produce consistent results.
 
-The first issue was a bug within the VariabilityChangeFilter that resulted in files not being marked as \texttt{VariabilityChange.CHANGE} in cases where ComAn could not extract variability information for changes on single files within the codebase. While this is only relevant for a small number of cases this behaviour is an important fallback mechansism as not including a file where the variability changed results in inconsistent models. While a false positive might require additional processing, assuming that problematic files change variability ensures that the extracted models represent the codebase correctly.
+The first issue that was noticed was that the execution of the bash-script for the reference-system was stopped unexpectedly. The interruption occured when applying the changes described by the file 00129-git.diff to the codebase. This is because this file is empty as the commit it represents was a merge-commit to the main branch of the Linux kernel that did not actually change anything. Therefore the commit was skipped for all subsequent evaluation executions.
 
-However there were also expected deviations within the VariabilityChangeFilter compared to the reference. Using the VariabilityChangeFilter, the code-model for a single codefile only gets rebuilt when variability-information within that file is modified. When a change is made within a codefile that does not change variability-information, it might still change the position of dead code blocks. A trivial example would be an inserted comment line right before an \texttt{\#ifdef}-block. This moves the block down by one line. However the codemodel does not get extracted again. The codemodel still contains the information that \texttt{\#ifdef}-blocks exist within the same codefile but only has access to the previous linenumber. As a result, when an analysis is performed on the entire codemodel after an update to the build- or variabilitymodel, the linenumbers do not match the result of the reference.
+Looking at the isolated results of the reference, it became clear that the reference had issues analyzing some states of the codebase. A total of 71 reference analysis executions resulted in no dead code blocks while all preceding and subsequent analysis results contained such blocks. Investigating the log-files we found that the issue was most likely due to the \texttt{KConfigReaderExtractor} not being able to extract the model from the codebase. Upon further investigation and using the original KConfigReader-tool, the assumed cause was confirmed\todo{insert reference to issue on github}. However it revealed a related bug for the incremental execution as those did still find dead code blocks. This is because when the extraction of variability-and buildmodel failed, the incremental infrastructure provided the previous models to the analysis. It was implemented in a way that it only replaced old models with new one. This has now been fixed as a failed execution of the buildmodel or variabilitymodel now results in the deletion of the model from the HybridCache\footnote{rollback is still possible}.
 
-Another deviation from the reference result stems from the fact that only variabilty-changes are considered to be relevant. For the reference, a dead-code-analysis was performed covering every single sourcefile in the codebase. This is not the case for the variability-change-only execution as it only covers the files where variability-information was modified.
+Additionally, a bug within the VariabilityChangeFilter was found that resulted in files not being marked as \texttt{VariabilityChange.CHANGE} in cases where ComAn could not extract variability information. While this is only relevant for a small number of cases, this behaviour represents an important fallback mechansism. While a false positive might require additional processing, assuming changed variability in such cases ensures that the extracted models represent the codebase correctly.
 
-Therefore the reference found more dead code blocks as also those in files not being affected by variability-changes were found.
+However there were also expected deviations within the results of the variabilty-only-filter execution compared to the reference. Using the \texttt{VariabilityChangeFilter}, the code-model for a single codefile only gets rebuilt when variability-information within that file is modified. When a change is made within a codefile that does not change variability-information, it might still change the position of dead code blocks. A trivial example would be an inserted comment line right before an \texttt{\#ifdef}-block. This moves the block down by one line. However the codemodel does not get extracted again. The codemodel still contains the information that \texttt{\#ifdef}-blocks exist within the same codefile but only has access to the previous linenumber. As a result, when an analysis is performed on the entire codemodel after an update to the build- or variabilitymodel, the linenumbers do not match the result of the reference.
 
+Another deviation from the reference result stems from the fact that only variabilty-changes are considered to be relevant. In the reference execution, a dead code analysis was performed covering every single sourcefile in the codebase. This is not the case for the variability-change-only execution as it only covers the files where variability-information was modified.
+
+The following entry was present in the reference result for \texttt{00001-git.diff} but not for the incremental result using the \texttt{VariabilityChangeFilter}:
+
+\begin{lstlisting}
+drivers/net/arcnet/com90xx.c;(CONFIG_ARCNET_COM90xx || CONFIG_ARCNET_COM90xx_MODULE) && (CONFIG_ARCNET || CONFIG_ARCNET_MODULE);606;610;0
+\end{lstlisting}
+
+Looking at \texttt{drivers/net/arcnet/com90xx.c} we can see that the dead code block actually got inserted on purpose and does not represent a modification to variability:
+
+\begin{lstlisting}
+#if 0
+    /* don't do this until we verify that it doesn't hurt older cards! */
+    arcnet_outb(arcnet_inb(ioaddr, COM9026_REG_RW_CONFIG) | ENABLE16flag, ioaddr, COM9026_REG_RW_CONFIG);
+#endif
+\end{lstlisting}
+
+The reference results therefore contained more dead code blocks as they also included those from files where the variability was not changed. 
+
+However when ignoring additional entries for non-variablity-related dead code blocks within the reference results, the variability-change-only results matched the reference results. Relevant entries that are related to variability can be identified because their presence condition has to contain the \texttt{CONFIG\_} prefix. In the result the presence condition is denoted as the element behind the last semicolon. In our example the presence condition is \texttt{0}. It does not contain \texttt{CONFIG\_} and therefore is not related to variability.
+
+Considering the results, the variability-change-only option is suitable when dead code blocks related to variabilty are the major concern. If however all dead-code-blocks should be found, one should be able to use the \texttt{ChangeFilter} for the codemodel instead. That way, all changes within the codemodel get analyzed while changes to build- and variabilitymodel are still processed using the \texttt{VariabilityChangeFilter}. This configuration seems practical, because the extraction and analysis of single codefiles does only require a small computational effort. However updates to the build- or variabilitymodel would result in costly computations as they require a full analysis covering the entire codemodel.
 
 \subsection{Non-Incremental: Results}
 
-\subsection{Incremental: Change Only Filter Results}
+\subsection{Incremental: ChangeFilter Results}
 
-\subsection{Incremental: Variability Change Filter Results}
+\subsection{Incremental: VariabilityChangeFilter Results}
 
 \subsection{Incremental: No Filter}
 
