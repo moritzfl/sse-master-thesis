@@ -127,67 +127,66 @@ Christian K\"oher
 \clearpage
 \section{Background}
 
-This chapter provides an introduction to related topics that the reader should be aware of. \todo{hier mehr Text vor dem ersten Unterkapitel}
-In this section, the reader will be provided with a general introduction to Software Product Lines and the Linux kernel Product Line specifically. This lays the foundation for understanding analyses on Software Product Line. Finally and before diving into the concepts of incremental analyses in the following chapters, the software project KernelHaven is introduced as an infrastructure for performing analyses on Software Product Lines. KernelHaven itself will be used as the foundation for the practical implementation of our approach.
+In this section, the reader will be provided with a general introduction to Software Product Lines and the Linux kernel Product Line specifically. This builds the foundation for understanding analyses on Software Product Line that are introduced subsequently. Before diving into the concepts of incremental analyses in the following chapters, the software project KernelHaven is introduced as an infrastructure for performing analyses on Software Product Lines. KernelHaven itself will be used as the foundation for the practical implementation of our approach.
 
 \subsection{Software Product Lines}\label{spl}
 
-When starting a new software project from scratch, one approach is to write code specifically for that project. The codebase and the documentation are tailored to the needs and requirements currently at hand. And when another project comes along, you do the same thing there. However it might turn out that those two projects technically share common functionality eventhough each product has features that the other does not.
+When starting a new software project from scratch, one approach is to write code specifically for that project. The codebase and the documentation are tailored to the needs and requirements currently at hand. And when another project is to be implemented, you do the same thing there. However it might turn out that those two projects technically share common functionality eventhough each product has features that the other does not.
 
-Instead of writing code for one project specifically it might have made sense to create something that is configurable to cover multiple use cases. Then for the next project it would be possible to combine and configure existing developed artifacts. And after some more projects it is perhaps even possible to realize a new product just by configuring and combining the assets that have already been created. This is where Software Product Lines come in. In contrast to traditional software development, Software Product Lines aim to reuse existing assets instead of writing software from scratch.
+Instead of writing code for one project specifically it might have made sense to create something that is configurable to cover multiple use-cases across different projects. Then for the next project it would be possible to combine and configure existing developed artifacts. And after some more projects it is perhaps even possible to realize a new product just by configuring and combining the assets that have already been created. This is where Software Product Lines come in. In contrast to traditional software development, Software Product Lines aim to reuse existing assets instead of writing software from scratch.
 
 Software Product Lines use engineering techniques for creating a portfolio of similar systems from a shared set of software assets \cite{intro-spl}. This differenciates Software Product Lines from software systems with \emph{opportunistic} reuse. \emph{Oppurtunistic} reuse of single components occurs in many software projects where parts of an developed system are reused by other components or included as library within other projects. However Software Product Lines are actively built for reuse, thereby employing a \emph{predictive} reuse system, that directly aims for future products to be able to reuse created assets.
 
 While considering configurability and reusability of assets when developing a single product results in a higher initial effort, the break even point is usually reached after about three products. Therefore incorporating the principles of Software Product Lines is advantageous when multiple system are able to share the same assets. Through the reuse of existing assets across multiple products, the development, maintainance and documentation effort is drastically reduced. Furthermore a new product is most likely more reliable and secure as it can be built directly on top of mature components  \cite[p.4f]{spl-in-action}.
 
-There are three types of features within Software Product Lines, that can be differenciated\cite[p.8]{spl-in-action}:
+There are three types of characteristics within Software Product Lines, that can be differenciated \cite[p.8]{spl-in-action}:
 \begin{description}
-\item[Commonality]  A feature that is shared across all members of the product line.
-\item[Variability]  A feature that is included in some, but not all members of the product line.
-\item[Product-specific]  A feature that is only included within one product. 
+\item[Commonality]  A characteristic that is shared across all members of the product line.
+\item[Variability]  A characteristc that is included in some, but not all members of the product line.
+\item[Product-specific]  A characteristic that is only included within one product. 
 \end{description}
 
-Software Product lines aim to keep product-specific implementations to a minimum as the goal is to enable the reuse of components wherever possible. However individual adjustments must be possible if required for a specific customer. The features within a software product line can be visualized using a feature model diagram as shown in \autoref{featuremodel}. 
+We consider characteristic of a Software Product Line to be a feature. Features within a software product line can be visualized using a feature model diagram as shown in \autoref{featuremodel}. 
 
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[Feature Model]{Feature Model: Example}\label{featuremodel}
+    \caption[Feature Model]{Feature Model for an Operating System}\label{featuremodel}
     \includegraphics[width=1\textwidth]{img/featuremodel.pdf}
   \end{minipage}
 \end{figure}
 
 In the example, the operating system has to include support for a CPU through either a 32-Bit or 64-Bit option. While CPU-Support itself is a mandatory feature, the choice between the 32-Bit and 64-Bit option is an exclusive one. When choosing one option, the other option can not be included. The selection of both Network Authentication and LocalAuthentication is however possible for the User Authentication feature as the choice between them is not exclusive. However Network Authentication requires the selection of Network Support which would otherwise be an optional feature. The feature model is one example of how variability within a Software Product Line can be represented. Another textual representation of variability will be introduced in section \ref{linux-kernel} in the context of the Linux kernel Product Line. 
 
-Models of variability represent configuration options within a Software Product Line. However the variability model does not represent how configured options are translated into the final product. In order to cover this process as well, we use two other models, the build and the code model. The consideration of three components related to variability within a product line can also be found in previous works eventhough different names have been used to describe them \cite{nadi-linux-kernel} \cite{mining-kbuild} \cite{KroeherEl-SharkawySchmid18}.
+Those variability models represent configuration options and their dependencies within a Software Product Line. However the variability model does not represent how configured options are translated into the final product. In order to cover this process as well, we use two other models, the build and the code model. The consideration of three components related to handling variability within a product line can also be found in previous work \cite{nadi-linux-kernel} \cite{mining-kbuild} \cite{KroeherEl-SharkawySchmid18}.
 
-The build model represents how the build systems how a concrete configuration is realized when building a product. A build system automates the process of program compilation. Their primary task is to create executables. For the build system of Software Product Line this means that it can carry the responsibility for selecting or even modifying compilation targets according to a concrete configuration. Following our example, the source-files related to the Network Support feature only need to be included into the build when the feature has been selected. The generic elements for the CPU-Support Feature on the other hand must be included at all times as they are a commonality for the product line. 
+The build model represents how the build systems how a concrete configuration is realized when building a product. A build system automates the process of program compilation. Its primary task is to create executables. For the build system of Software Product Line this means that it can carry the responsibility for selecting or even modifying compilation targets according to a concrete configuration. Following our example, the source-files related to the Network Support feature only need to be included into the build when the feature has been selected. The generic elements for the CPU-Support Feature on the other hand must be included at all times as they are a commonality for the product line. 
 
-It is worth noting that the direct inclusion or exclusion of codefiles for compilation is not the only option for achieving variability within a product. Another option is to have features selectable when executing the final product. It is for example possible to include more than one user interface for the same product and allow the user to select his preference even after the system has been compiled. The difference here is the binding time of the feature. The compile-time variability is decided before or at compilation time while load-time and run-time variability allow to define customized behaviour during startup or execution \cite[p.49]{Apel:2013:FSP:2541773}.
+As the selective compilation of sourcecode is a mechanic that works before or at compilation time, it represents the implementation of compile-time variability. This is however not the the only option for achieving variability within a product. Another option is to modify the product is started (load-time variability) or executed (run-time variability) \cite[p.49]{Apel:2013:FSP:2541773}. It is for example possible to include more than one user interface for the same product and allow the user to select his preference even after the system has been compiled. While all three approaches allow the configuration of features within a within a software project, they differ in the binding-time of the feature. 
 
-Finally different behaviours for different configured options may also be defined through the sourcecode. This can be achieved through conditional compilation. In conditional compilation, compiler directives are used to include or exclude code sections from compilation. Those directives allow it to incorporate the selection or deselection of a certain feature for the selection or deselection of code sections. Not all programming languages use specific directives: In Java, the compiler recognizes if statements that always evaluate to false and ignores the encapsuled code for compilation.
+Finally different behaviours for different configured options may also be defined through the sourcecode. This can be achieved by using conditional compilation. In conditional compilation, compiler directives are used to include or exclude code sections from compilation. Those directives allow it to incorporate the selection or deselection of a certain feature for the selection or deselection of code sections. Not all programming languages use specific directives: In Java, the compiler recognizes if statements that always evaluate to false and ignores the encapsuled code for compilation. Compiler directives as interpreted by the C-Preprocessor do however share a strong resemblance to the if statements known from java or other programming languages. Those \texttt{\#ifdef} blocks check whether a certain parameters have been defined and evaluate conditions defined for the \texttt{\#ifdef} block to either include or exclude code from compilation. If the parameters are defined according to a concrete configuration based on the variability of a Software Product Line, they can be used to reflect configuration choices.
 
 In this section, we covered Sofware Product Lines and gave an idea of how variability within a software project can be achieved. In the following section, we will take a closer look at how variability is incorporated in the Linux Kernel project.
 
 \subsection{The Linux Kernel}\label{linux-kernel}
 
-A prominent example for a Software Product Line in the open source space is the Linux Kernel. The Linux Kernel handles variability utilizing the conditional compilation of the C-Preproecessor as a core component. When implementing incremental analyses, we will rely on KernelHaven \cite{KroeherEl-SharkawySchmid18} as an existing software project that is able to work with C-preprocessor Software Product Lines that is introduced in section \ref{kernelhaven}. Eventhough other C-preprocessor Software Product Lines exist, many product lines stem from a commercial context. In order to enable the reproduction of our results as well as accessibility to the components used for this work, the Linux Kernel was chosen as target for evaluating the developed incremental analysis. The Linux kernel itself comes with more than 10.000 configurable features \cite{Tartler:2011:FCC:1966445.1966451}. 
+A prominent example for a Software Product Line in the operating system domain is the Linux Kernel. The Linux Kernel handles variability utilizing the conditional compilation of the C-Preproecessor as a core component. When implementing incremental analyses, we will rely on KernelHaven \cite{KroeherEl-SharkawySchmid18} as an existing software project that is able to work with C-preprocessor Software Product Lines that is introduced in section \ref{kernelhaven}. Eventhough other C-preprocessor Software Product Lines exist, many of them stem from a commercial context and are closed-source while the Linux Kernel is an open-source project. In order to enable the reproduction of our results as well as accessibility to the components used for this work, the Linux Kernel was chosen as target for evaluating the developed incremental analysis. The Linux kernel itself comes with more than 10.000 configurable features \cite{Tartler:2011:FCC:1966445.1966451}. 
 
-\todo{modify figure with make space, remove numbers}
+
+\autoref{linux-build} shows an overview over the Linux Kernel build process. The Linux build system relies on KConfig files, Kbuild makefiles and code files to implement variability within the Linux Kernel Product Line. The files are processed by three components, the Kconfig-System, the Kbuild-System and finally the compiler. Kconfig defines configurable options and their dependencies while the Kbuild system is the build system used to automate the compilation process. The gcc compiler finally compiles codefiles to a linux variant that can be distributed and executed.
 
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[Linux build process]{Linux build process \cite{Tartler:2011:FCC:1966445.1966451}}\label{linux-build}
+    \caption[Linux build process]{Linux Kernel Build Process \cite{nadi-linux-kernel}}\label{linux-build}
     \includegraphics[width=1\textwidth]{img/linux-build.png}
   \end{minipage}
 \end{figure}
 
 
-Linux uses a language called KConfig to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. Because Linux uses KConfig to define features and their dependencies, the KConfig files of the linux kernel represent the variabiltiy model of the kernel.
+Linux uses a the KConfig language to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. Thereby the KConfig files define the variability model of the Linux Kernel. 
 
-
-\begin{lstlisting}{language=KConfig}[caption=KConfig Language, label=kconfig]
+\begin{lstlisting}[caption= KConfig Language, label=kconfig]{language=KConfig}
 config NETWORK_AUTHENTICATION
 	bool "Network Authentication"
 	depends on USER_AUTHENTICATION
@@ -198,64 +197,62 @@ config NETWORK_AUTHENTICATION
 	  Support for network authentication ...
 \end{lstlisting}
  
-Building on top of the example shown in \autoref{featuremodel} in \ref{spl}, \autoref{kconfig} shows how KConfig can be used to describe the variabilitymodel. The example uses a boolean variable that allows for either inclusion or exclusion of a feature in the configured product. However Kconfig also offers an alternative option for including or excluding a feature: Tristate variables allow a feature to either be excluded, linked into the kernel statically, or be dynamically loadable \cite{variabilitymodel-linux}. Therfore the KConfig language allows the description of the binding time for a certain feature. Other types of variables used in the KConfig language are integer and string.
+Building on top of the example shown in \autoref{featuremodel} in subsection \ref{spl}, \autoref{kconfig} shows how KConfig can be used to describe the variabilitymodel. The example uses a boolean variable that allows for either inclusion or exclusion of a feature in the configured product. However Kconfig also offers an alternative option for including or excluding a feature: Tristate variables allow a feature to either be excluded, linked into the kernel statically, or be dynamically loadable \cite{variabilitymodel-linux}. Therfore the KConfig language allows the definition of the binding time for a certain feature. Other types of variables used in the KConfig language are integer and string.
 
-NETWORK\_AUTHENTICATION can only be selected if USER\_AUTHENTICATION has also been selected as NETWORK\_AUTHENTICATION depends on this feature. If NETWORK\_AUTHENTICATION is selected for inclusion in the compiled product, the features prefaced with \texttt{select} are automatically included aswell. It is also possible to define more complex condition for \texttt{select} or \texttt{depends on} entries where the selection of a feature depends on more than one feature. In this instance REMOTE\_USER\_FOLDER\_SUPPORT is automatically selected if the NETWORK\_STORAGE\_SUPPORT feature is also configured to be included.
+In the example, NETWORK\_AUTHENTICATION can only be selected if USER\_AUTHENTICATION has also been selected as NETWORK\_AUTHENTICATION depends on this feature. If NETWORK\_AUTHENTICATION is selected for inclusion in the compiled product, the features prefaced with \texttt{select} are automatically included aswell. It is also possible to define more complex condition for \texttt{select} or \texttt{depends on} entries where the selection of a feature depends on more than one feature. In this instance REMOTE\_USER\_FOLDER\_SUPPORT is automatically selected if the NETWORK\_STORAGE\_SUPPORT feature is also configured to be included. Finally, help defines a text to provide the configuring user with information about the feature. This text is used in user interfaces for configuring the linux kernel such as menuconfig or xconfig.
 
-Finally, help defines a text to provide the configuring user with information about the feature. This text is used in user interfaces for configuring the linux kernel. The tool menuconfig as an example for such an user-interface is shown in \autoref{menuconfig}.
+The output of the configuration is a \texttt{.config}-file representing a concrete configuration aswell as a header file called \texttt{autoconf.h}. The Kbuild build system uses the generated configuration together with Kbuild makefiles to define which sourcefiles to include for compilation. Because the Kbuild makefiles define the build process of the product line, they represent the build model. Kbuild works by recursively processing the Makefiles within the directories and subdirectories of the Linux Kernel project to create two distinct lists containing objects that are to be included for the compilation process. The list obj-y contains all files that are to be compiled and linked whereas  obj-m contains those that will be compiled as loadable modules \cite{nadi-linux-kernel}\cite{makefiles.txt}. 
 
-\begin{figure}[h] 
-  \centering
-  \begin{minipage}[b]{1\textwidth} 
-    \caption[Menuconfig Screenshot]{Configuration of the Linux kernel through menuconfig}\label{menuconfig}
-    \includegraphics[width=1\textwidth]{img/menuconfig.png}
-  \end{minipage}
-\end{figure}
+Finally \texttt{autoconf.h} defines variables for each selected KConfig feature \cite{Tartler:2011:FCC:1966445.1966451}. Defined variables within \texttt{autoconf.h} are used to evaluate compiler directives for including or excluding code sequences. \autoref{conditional-compilation} shows an examplary excerpt of source code. Lets assume that \texttt{autoconf.h} contained the line \texttt{\#define CONFIG\_NETWORK\_SUPPORT}. Because \texttt{CONFIG\_NETWORK\_SUPPORT} is defined and set to \texttt{1}, the \texttt{\#ifdef} statement in our example evaluates to true and therefore the line \texttt{include <network/generic\_driver.h>} is included for compilation of the  linux variant.
 
-
-The output generated through a KConfig configuration tool is a .config file representing a concrete configuration. This file is then used to generate a C header file and a Makefile. Those files (autoconf.h and auto.make) define macros for the C-preprocessor and define variables for each selected KConfig feature \cite{Tartler:2011:FCC:1966445.1966451}. The variables for parameters represented within KConfig start with CONFIG\_ by convention.
-
-The Kbuild build system for the linux kernel uses the generated files representing the configuration together with Kbuild makefiles to define which sourcefiles to include for compilation. 
-
-A kbuild makefile tells the build system which objects in the directory to include for compilation. The build tool recursively processes the directories of the codebase.
-
-The sourcefiles themselves (*.c and *.h files) contain variabiltiy information in the form of ifdef-blocks that are evaluated by the C-preprocessor. The preprocessor thereby includes or excludes lines of code within a  sourcefile.
-
-\begin{lstlisting}
-# ifdef CONFIG_SUPERH32
-#  include <asm/posix_types_32.h>
-# else
-#  include <asm/posix_types_64.h>
-# endif
+\begin{lstlisting}[caption=Conditional Compilation within the Linux Kernel, label=conditional-compilation]{language=C}
+ # ifdef CONFIG_NETWORK_SUPPORT
+ #  include <network/generic_driver.h>
+ # endif
 \end{lstlisting}
 
-The variability of the software product line is expressed through the three components we just introduced:
-
-\begin{itemize}
-	\item the KConfig system
-	\item the KBuild system
-	\item sourcefiles
-\end{itemize}
-
-Speaking in a more abstract manner, the KConfig system represents a variability-model that defines configuration options and their dependencies. KBuild on the other hand determines how a configuration is mapped to sourcefiles when building a concrete product. Thereby the KBuild system represents the build-model for the Linux kernel. Finally the \texttt{\#ifdef}-blocks within sourcefiles define which parts within each sourcefile get included for compilation. Therefore the sourcefiles represent a third model which is called the code-model.
-
-Those three models can be used to perform analyses on Software Product Lines. An overview over analyses for Software Product Lines is presented in the next section.
+The code, build and variability model as described through the files within the Linux Kernel project can be used to perform analyses on the Sofware Product Line wich are introduced in the next section.
 
 \newpage
 
 \subsection{Software Product Line Analyses}
+
+Measuring of relevant parameters (e.g. performance), testing and analyzing products is well established for individual products \cite[p.243]{Apel:2013:FSP:2541773}. 
+In order to apply those methods on a the product line, a simple approach would be to analyze every possible permutation of feature combinations that is possible as a single product. For a product line with 33 independently selectable features and an analysis time of one second per permutation this would however result in an insurmountable computational effort of more than 272 years \cite{Thum:2014:CSA:2620784.2580950}. In section \ref{linux-kernel}, we mentioned that the Linux Kernel has more than 10.000 configurable features. Therefore approaches that exist for individual products do not scale for product lines. Furthermore aspects of variability itself within a software project can also be used as working base of analyses thereby adding a dimension to the analysis of individual products.
+
+This section will provide an overview of analyses that are tailored towareds Software Product Lines. As the KernelHaven which will be used for our implementation of an incremental analysis currently provides an infrstructure for static analyses, static analyses will be the focus of this section.
+
+\subsubsection{Analysis Strategies}
+
+Following previous work from Tartler et al. \cite{Tartler:2011:FCC:1966445.1966451}, we distinguish five different categories of analysis strategies:
+
+\begin{enumerate}
+	\item Product-based
+	\item Family-based
+	\item Feature-product-based
+	\item Feture-family-based
+	\item Family-proudct-based
+\end{enumerate}
+
+
+\todo{describe that feature-based or feature-family product based did not occur}
+
+
+
+Thum et al. \cite{Thum:2014:CSA:2620784.2580950} propose a categorization
+
 
 \todo{describe Software Product Line Analyses}
 
 \newpage
 \subsection{KernelHaven - An Analysis Infrastructure}\label{kernelhaven}
 
-KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor Software Product Lines\cite{KroeherEl-SharkawySchmid18} such as the Linux kernel. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in section \ref{implementation}. 
+KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor Software Product Lines such as the Linux kernel \cite{KroeherEl-SharkawySchmid18}. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in section \ref{implementation}. 
 
 Before diving into technical details, the some of the terminology used for the remainder of this work needs some clarification. The set of all files  that represent a software system and are used as input for an analysis will be referred to as the codebase. The codebase therefore includes files containing source code as well as files defining the build process or configuration-options. Referring to the Linux-Kernel as an example this would mean all files within the Linux repository for single revision of the kernel.
 The term sourcefile or codefile on the other hand refers to a file that contains source-code. For the Linux kernel this would mean all *.c and *.h files. Finally variability model files and build model files are files within the codebase that relate to the respective models. For Linux this means that the files of the KBuild-system are considered variability model files, while files of the KConfig system are considered to be variability model files.
 
-An overview over the KernelHaven-Architecture structure is shown in \autoref{pipeline}. Because KernelHaven targets C-preprocessor Software Product Lines, it needs to be able to process build-, variability and codemodel. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the PipelineConfigurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. 
+An overview over the KernelHaven-Architecture structure is shown in \autoref{pipeline}. Because KernelHaven targets C-preprocessor Software Product Lines, it needs to be able to process build-, variability and codemodel. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the PipelineConfigurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. It is  important to note that KernelHaven-plugins do not read their settings directly from a configuration file. This is because KernelHaven offers entry points to perform adjustments to the configuration described by the file through the configuration-object before it is used in subsequent steps.
 
 \begin{figure}[h] 
   \centering
