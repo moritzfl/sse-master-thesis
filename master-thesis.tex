@@ -224,25 +224,21 @@ This section will provide an overview of analyses that are tailored towareds Sof
 
 \subsubsection{Analysis Strategies}
 
-Following previous work from Tartler et al. \cite{Tartler:2011:FCC:1966445.1966451}, we distinguish five different categories of analysis strategies:
+Following previous work from Tartler et al. \cite{Tartler:2011:FCC:1966445.1966451}, we distinguish three main analysis strategies that target product lines. \autoref{analysis-strategies} shows the three strategies product based, family based and feature based. The strategies might be applied in combination and are not mutually exclusive. 
 
-\begin{enumerate}
-	\item Product-based
-	\item Family-based
-	\item Feature-product-based
-	\item Feture-family-based
-	\item Family-proudct-based
-\end{enumerate}
+\begin{figure}[h] 
+  \centering
+  \begin{minipage}[b]{0.7\textwidth} 
+    \caption[Analysis Strategies]{Analysis Strategies}\label{analysis-strategies}
+    \includegraphics[width=\textwidth]{img/analysis-strategies.pdf}
+  \end{minipage}
+\end{figure}
 
+Product-based strategies operate on individual products instead of considering the product line as a whole. This allows for existing tooling to be reused. In Java for example the compiler already does already do type checking for the product. However the knowledge gained from analyzing a product as a part of the product lines is not transferred to other products  resulting in redundant computations.
 
-\todo{describe that feature-based or feature-family product based did not occur}
+To reduce redundant computations, a Family-Based analysis considers variability and commonality aspects within a product line instead of purely focussing on generated artifacts \cite{Tartler:2011:FCC:1966445.1966451}. This approach however hinders analyses written for single products from being directly applied to product lines as they do not consider variability. While some of the existing analyses for single products may be adjusted to consider variability, new analysis methods considering variability and features also need to be developed \cite{Tartler:2011:FCC:1966445.1966451}. 
 
-
-
-Thum et al. \cite{Thum:2014:CSA:2620784.2580950} propose a categorization
-
-
-\todo{describe Software Product Line Analyses}
+Finally the Feature-Based analysis strategy analyses artifacts implementing a certain feature in isolation. Thereby the analysis reduces the necessary computations as not all possible combinations of features need to be tested. Instead, the number of analysis tasks is linear to the number of features. This approach however has the disadvantage that it might be incomplete \cite{Tartler:2011:FCC:1966445.1966451}.
 
 \newpage
 \subsection{KernelHaven - An Analysis Infrastructure}\label{kernelhaven}
