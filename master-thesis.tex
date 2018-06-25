@@ -190,8 +190,6 @@ Using the dead code analysis as an example for incremental analyses, we try to a
 This work is structured as follows: Chapter \ref{background} will introduce software product lines along with the Linux Kernel as an example. It will then cover software product line analyses and KernelHaven as an infrastructure for performing analyses on software product lines. Chapter \ref{requirements} lists the requrirements for our implementation. Chapter \ref{concept} will provide a brief introduction to the concept of incremental analyses that will then serve as foundation for the implmenentaion which is described in Chapter \ref{implementation}. Following this, Chapter \ref{evaluation} will cover the evaluation of the developed infrastructure for incremental analyses using the dead code analysis as an example. Finally Chapter \ref{threats-to-validity} will discuss threads to validity while Chapter \ref{conclusion} summarizes this works and provides perspectives for future research.
 
 
-
-\clearpage
 \section{Background} \label{background}
 
 This section will introduce software product lines and the Linux Kernel  specifically. This builds the foundation for understanding analyses on software product lines that are introduced subsequently. Before diving into the concepts of incremental analyses in the following chapters, the software project KernelHaven is introduced as an infrastructure for performing analyses on software product lines. KernelHaven itself will be used as the foundation for the practical implementation of our approach.
@@ -281,8 +279,6 @@ Finally \texttt{autoconf.h} defines variables for each selected KConfig feature 
 
 For performing analyses on software product lines, the variability information within the Linux Kernel codebase can be extracted to create data models. The variability information within source files is translated into a code model while KConfig files can be used to create a variability model. Finally the Kbuild files define the build model of the Linux Kernel. After obtaining the models, they can be used to perform analyses on the software product line.
 
-\newpage
-
 \subsection{Software Product Line Analyses}
 
 This section will provide an overview of analyses that are tailored towards software product lines. We will later use the dead code analysis that will be introduced in Section \ref{feature-code-mapping}  for implementing an incremental analysis.
@@ -329,7 +325,6 @@ Typechef is an example for a Variability-Aware Analysis that performs type check
 
 While the computations for variability-aware analyses are usually more costly than their counterparts for individual products, they do perform faster than product based analyses for product lines.
 
-\newpage
 \subsection{KernelHaven - An Analysis Infrastructure}\label{kernelhaven}
 
 KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor software product lines such as the Linux Kernel \cite{KroeherEl-SharkawySchmid18}. It was initially created as a student project and is written in Java.  Since then, KernelHaven has been further developed and extended through numerous plugins. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in Section \ref{implementation}. 
@@ -734,7 +729,7 @@ However when starting a subsequent run of the incremental analysis, the contents
  
 As \texttt{Hybrid\-Cache} does allow access to both the current and previous model, the instance of the \texttt{Hybrid\-Cache} used within \texttt{Incremental\-Post\-Extraction} is also passed on to the next \texttt{Analysis\-Component}. 
   
-\subsection{Implementation of Incremental Analyses}
+\subsection{Implementation of Incremental Analyses}\label{incremental-analyses}
 
 An \texttt{Analysis\-Component} using the \texttt{Hybrid\-Cache} as input has access to all models in both the previous and current version. In order to make the implementation of an incremental analysis easier, \texttt{Hybrid\-Cache} also allows to directly obtain the parts of the code model that did change. \texttt{Analysis\-Component}s implemented specifically for the incremental infrastructure may therefore work directly with an \texttt{Hybrid\-Cache}-object as input. 
 
@@ -1025,10 +1020,10 @@ We implemented the dead code analysis as one analysis within an infrastructure t
 \newpage
 \section{Conclusion}\label{conclusion}
 
-In this work, we described an approach to improve the performance of analyses of software product lines. Our approach introduces incremental analyses that work based on the newly introduced changes to a product line instead of reanalyzing the entire codebase. Our implementation of an incremental dead code analysis demonstrates siginificant improvements to performance. Overall, we were able to achieve roughly between $5\times$ to $10\times$ the performance of the reference system while still achieving consistent results. 
-In fact, most of our incremental analyses only took a few seconds to finish. The largest leaps in performance were achieved by performing partial analyses covering only the part of the codebase that did change. The results of such partial analyses reliably provided the same information about variability related dead code blocks that was gained by performing a full analysis in the reference system.
+In this work, we described an approach to improve the performance of analyses of software product lines. Our approach introduces incremental analyses that work based on the newly introduced changes to a product line instead of reanalyzing the entire codebase. Our implementation of an incremental dead code analysis demonstrates siginificant improvements to performance. Overall, we were able to achieve roughly between $5\times$ to $10\times$ the performance of the reference system while still obtaining consistent results. 
+In fact, most executinos of our incremental analyses only took a few seconds to finish. The largest leaps in performance were achieved by partial analyses that only processed updated parts of the code model. The results of such partial analyses reliably provided the same information about variability related dead code blocks that was gained by performing a full analysis in the reference system.
 
-Through the reduced computational effort related to analyses, our approach enables more frequent analyses on software product lines and for most executions even timely feedback for develpers within seconds. However we still do have performance spikes in instances where a more substantial part of the software product line needs to be analyzed in about 10\% to 20\% of executions for incremental analyes. While the perfomance in such situations is still compareable with the reference system, it is significantly higher than other executions of our incremental dead code analysis. In fact those spikes made up 99\% of the duration required for all analyses on our evaluation dataset. Future research focusing on the reduction of the duration or frequency of such performance spikes would allow even better versatility for performing analyses in the context of CI or the application on less powerful computer systems like developer workstations or laptops.
+Through the reduced computational for analysis executions, our approach enables more frequent analyses on software product lines and for most executions even timely feedback for develpers within seconds. However we still do have performance spikes in instances where a more substantial part of the software product line needs to be analyzed in about 10\% to 20\% of executions. While the perfomance in such situations is still compareable with the reference system, it is significantly higher than other executions of our incremental dead code analysis. In fact those spikes made up 99\% of the duration required for all analyses on our evaluation dataset. Future research focusing on the reduction of the duration or frequency of such performance spikes would allow even better versatility for performing analyses in the context of CI or the application of software product line analyses on less powerful computer systems like developer workstations or laptops.
 Additionally the implementation of incremental analyses other than the dead code analysis could be useful for investigating whether the concept of incrmenental analyses is transferrable to other analysis types.
 
 %\Bibliography
@@ -1041,8 +1036,73 @@ Additionally the implementation of incremental analyses other than the dead code
 \newpage
 \appendix
 \section{Appendix}
+\subsection{Manual for Incremental Infrastructure}
 
-\subsection{Configurations used for Evaluation}
+This section explains the setup and configuration of the incremental analysis for the execution of incremental analyses. Furthermore a short overview of the extension possiblities of the infrastructure  is provided for developers.
+
+\subsubsection{Setup}
+
+For the setup we assume that the KernelHaven infrastructure has already been set up according to its documentation\footnote{https://github.com/KernelHaven/KernelHaven/wiki/Setup-and-Execution}.
+For the incremental infrastructure, you additionally need to download the current jar-files of the following projects and place them in the plugin directory:
+
+\begin{itemize}
+	\item \texttt{IncrementalAnalysesInfrastructure} 
+	\item \texttt{ComAn}
+\end{itemize}
+
+If you want to use the incremental dead code analysis, you also need to add the following additional jar-files of the following projects to the plugin folder:
+
+\begin{itemize}
+	\item \texttt{IncrementalDeadCodeAnalysis}
+	\item \texttt{UnDeadAnalyzer}
+	\item \texttt{CnfUtils} 
+\end{itemize}
+
+Additionally, you need to prepare an empty folder that can be used for the \texttt{HybridCache}. 
+
+\subsubsection{Configuration and Execution}
+
+In order to use the incremental infrastructure, it is important to use an Analysis that contains the \texttt{Incremental\-Post\-Extraction} as analysis component. Furthermore \texttt{Incremental\-Preparation} must be configured as Preparation-Plugin. Code, build and variability model files can individually be filtered using the \texttt{Change\-Filter}, \texttt{Default\-Filter} or \texttt{Variability\-Change\-Filter} that were introduced in Section \ref{preparation-phase}. All three filters use a regular expression in order to determine which files represent which model. Those regular expressions can also be configured within the configuration-file. The \texttt{Variability\-Change\-Filter} requires that \texttt{Variability\-Diff\-Analyzer} is used as the diff analyzer class. The \texttt{Simple\-Diff\-Analyzer} can be used if \texttt{Variability\-Diff\-Analyzer} is not used for any of the models.
+
+A rollback can be achieved by adding the line \texttt{incremental.rollback = true} to the configuration and then starting KernelHaven based on that configuration. KernelHaven will then perform a rollback on the HybridCache and revert the changes described by the git-diff file that is referenced from within the configuration-file.
+
+The execution itself is started as usual for KernelHaven:
+
+\texttt{\$ java -jar KernelHaven.jar configuration.properties}
+
+The following configuration snippet shows all configuration options that are relevant for incremental analyses specifically. For brevety, all classes are referred to by their simple name instead of their fully qualified class name. Detailed examples of working configurations can be found in Section \ref{config-evaluation}
+
+\begin{lstlisting}[language=java]
+# Analysis class
+analysis.class = IncrementalDeadCodeAnalysis
+# Directory for the Hybrid Cache
+incremental.hybrid_cache.dir = hybrid_cache/
+# Path to git-diff file that is used as input
+incremental.input.source_tree_diff = git.diff
+# Set IncrementalPreparation as preparation class
+preparation.class.0 = IncrementalPreparation
+
+# InputFilter classes and DiffAnalyzer class
+incremental.code.diff_analyzer_class = SimpleDiffAnalyzer
+incremental.code.filter = ChangeFilter
+incremental.build.filter = DefaultFilter
+incremental.variability.filter = VariabiltyChangeFilter
+
+# These regular expressions are used to assign artifacts within
+# the codebase to the code, variability or build model  
+code.extractor.file_regex = .*\.c
+variability.extractor.file_regex = .*(?i)(^|\/|\\)(Kconfig)
+build.extractor.file_regex = .*(?i)(^|\/|\\)(Makefile\.?\w*|Kbuild|Build)
+\end{lstlisting}
+
+\subsubsection{Extension of the Incremental Infrastructure}
+
+The incremental infrastructure supports custom impelemtations of incremental analyses. An incremental analysis either works using the \texttt{Hybid\-Cache\-Adapter} as explained in Section \ref{incremental-analyses} or alternatively is implemented as an \texttt{Analysis\-Component} that can directly process an \texttt{Hybrid\-Cache}-object as input. For the latter, the analysis needs to be configured within an AnalyisisPipeline where the \texttt{Incremental\-Post\-Extraction} is the first component.
+
+Custom filtering options can be created by creating implementations of the abstact \texttt{InputFilter} class. Finally one could also create replacements for the \texttt{SimpleDiffAnalyzer} or \texttt{VariabilityDiffAnalyzer}. However such an implementation should at least flag commit entries as \texttt{MODIFICATION}, \texttt{DELETION} or \texttt{ADDITION}.
+
+
+\subsection{KernelHaven Configurations used for Evaluation} \label{config-evaluation}
 This section lists the most relevant settings used for the evaluation of the incremental infrastructure and the incremental dead code analysis. For brevety only the names of the classes are used instead of the fully qualified class names required by KernelHaven. For every configuration, reading and writing to the KernelHaven cache was deactivated and all timeout options were set to 0.
 
 \subsubsection{Ref configuration}
