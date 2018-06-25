@@ -1209,7 +1209,7 @@ variability.extractor.class = KconfigReaderExtractor
 	\textbf{Requirement} & \textbf{Satisfied} & \textbf{Comment} \\
 	\hline
 	REQ \ref{req:working-base} & \cmark & The incremental infrastructure processes a change in form of a git-diff file (see REQ \ref{req:git-diff}). The introduce change is used in conjunction with a folder containing the previous state of the codebase. \\ \hline
-	REQ \ref{req:git-diff} & \cmark & The incremental infrastructure processes a git-diff file as input. \\ \hline
+	REQ \ref{req:git-diff} & \cmark & The incremental infrastructure processes a git-diff file as input. The git-diff file must be generated using the following git diff command: \texttt{git diff --no-renames --binary commitHashA commitHashB} \\ \hline
 	REQ \ref{req:analysis-types} & \cmark & The incremental infrastructure is able to handle block based analyses as demonstrated through the implementation of the dead code analysis (see REQ \ref{req:dead-code-analysis}. \\ \hline
 	REQ \ref{req:early-filtering} & \cmark & Through \texttt{InputFilters} which are applied in the Preparation-Phase the incremental infrastructure supports the filtering of extractor input. \\ \hline
 	REQ \ref{req:partial-models} & \cmark & \texttt{Hybrid\-Cache} provides access to the previous and current models thereby allowing analyses to selectively use parts of the models. Furthermore, \texttt{Hybrid\-Cache\-Adapter} includes options for providing a partial or complete code model. \\ \hline
