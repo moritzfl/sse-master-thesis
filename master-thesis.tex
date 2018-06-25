@@ -334,7 +334,7 @@ While the computations for variability-aware analyses are usually more costly th
 
 KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor software product lines such as the Linux Kernel \cite{KroeherEl-SharkawySchmid18}. It was initially created as a student project and is written in Java.  Since then, KernelHaven has been further developed and extended through numerous plugins. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in Section \ref{implementation}. 
 
-An overview over the KernelHaven architecture is shown in \autoref{pipeline}. Because KernelHaven targets C-preprocessor based software product lines, it needs to be able to process build, variability and code model. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the Pipeline Configurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. It is  important to note that KernelHaven-plugins do not read their settings directly from a configuration file. This implementation will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration read from the file.
+An overview over the KernelHaven architecture is shown in \autoref{pipeline}. Because KernelHaven targets C-Preprocessor based software product lines, it needs to be able to process build, variability and code model. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the Pipeline Configurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. It is  important to note that KernelHaven-plugins do not read their settings directly from a configuration file. This implementation will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration read from the file.
 
 \begin{figure}[h] 
   \centering
@@ -696,7 +696,7 @@ In the Post-Extraction-Phase, extraction results are merged with the models extr
 
 For \texttt{Analysis\-Component}s KernelHaven assumes that those components are chained together and executed in the defined order. Not using \texttt{Analysis\-Component}s therefore might hold advantages when this strict pattern needs to be broken - for example by skipping steps or repeating a certain step depending on the result of a subsequent step.
 
-However the tasks of the Post-Extraction-Phase are mandatory before the Analysis-Phase starts. Therfore reuse of the component that implements the tasks is of paramount importance. Consequently \texttt{Incremental\-Post\-Extraction} is written as an \texttt{Analysis\-Component}.
+However the tasks of the Post-Extraction-Phase are mandatory before the Analysis-Phase starts. Therefore reuse of the component that implements the tasks is of paramount importance. Consequently \texttt{Incremental\-Post\-Extraction} is written as an \texttt{Analysis\-Component}.
 
 \subsubsection{Pulling Extractor Results}
 
@@ -928,13 +928,16 @@ After evaluating the overall performance using the average values, this section 
 
 The relatively low execution times between commit nr 46 and 116 can be explained through the \texttt{choice} bug identified in Section \ref{early-evaluation-results}. For those commits, no actual dead code analysis could be performed because the models were incomplete. Nevertheless, we chose to include the results for our evaluation as they do still demonstrate the differences between incremental and non-incremental executions. While Ref always tried to extract all models, Change only tried to extract the changed parts thereby being able to terminate faster. 
 
+
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[Change Performance]{Change Performance}\label{fig:change}
-    \includegraphics[width=1\textwidth]{img/change-vs-ref.png}
+    \caption[Change Performance]{Change compared to Ref Performance}\label{fig:change}
+    \centering
+    \includegraphics[height=1\textwidth, angle=90]{img/change-vs-ref.pdf}
   \end{minipage}
 \end{figure}
+
 
 For all except one analysis execution, Change achieved better or compareable performance to Ref. However the one outlier apparently required much longer than all other executions. The outlier represents the execution based on \texttt{00031-git.diff}. In theory no Change execution should be significantly slower than the first execution as the first execution has to process the initial commit to the codebase and perform a full analysis based on the complete code, build and variability model. While other subsequent executions might still require a full analysis, they do not have to perform a full extraction of the entire code model as only the modified code files need to be processed by the extractor. 
 Looking at the specific log file, we also found that the duration of the Extraction-Phase was above average but still reasonably quick at 75s. The only execution phase with a significantly long duration was the Analysis-Phase measuring in at about 2h 31min ($\approx 9000s$). As the incremental dead code analysis uses the same AnalysisComponent from the UnDeadAnalyzer plugin as the reference analysis, the component should operate at the same speed once the models are provided. Therefore we were unable to find reasons for the outlier within our implementation. We repeated the analysis execution for the changes described by \texttt{00031-git.diff} in order to be able to consult date from more than one execution. The additional five executions performed for \texttt{00031-git.diff} had an average execution time of 2794 s which falls within the normal range as depicted in the plot. This hints at external reasons for the prolonged execution time - however we were unable to identify the exact reason for the outcome of the initial measurement.
@@ -944,8 +947,9 @@ The curve for Ref is rather unstable between analysis executions. We assume rand
 \begin{figure}[h] 
   \centering
   \begin{minipage}[b]{1\textwidth} 
-    \caption[VarChange Performance]{VarChange Performance}\label{fig:var-change}
-    \includegraphics[width=1\textwidth]{img/var-change-vs-ref.png}
+    \caption[VarChange Performance]{VarChange compared to Ref Performance}\label{fig:var-change}
+    \centering
+    \includegraphics[height=1\textwidth, angle=90]{img/var-change-vs-ref.pdf}
   \end{minipage}
 \end{figure}
 
@@ -955,9 +959,11 @@ The curve for Ref is rather unstable between analysis executions. We assume rand
   \centering
   \begin{minipage}[b]{1\textwidth} 
     \caption[VarChange compared to Change Performance]{VarChange compared to Change Performance}\label{fig:var-change-vs-change}
-    \includegraphics[width=1\textwidth]{img/var-change-vs-change.png}
+    \centering
+    \includegraphics[height=1\textwidth, angle=90]{img/var-change-vs-change.pdf}
   \end{minipage}
 \end{figure}
+
 
 Finally \autoref{fig:var-change-vs-change} shows the results of VarChange and Change together. It is worth highlighting at this point that with 11\% of executions requiring a full analysis, VarChange was able to reduce the number of spikes compared to the 22\% for Change. Therefore the plot often shows spikes for Change while no spikes for VarChange appear for the same git-diff file.
 The plot also indicates that VarChange executions might be faster on avererage when considering only those data points where a full analysis was required for VarChange. Investigating the perfomance results more closely, we found that VarChange was faster for 23 out of the 33 executions where it required a full analysis when compared to Change. This seems to support the hypothesis that VarChange is faster in those cases but the difference is not big enough to provide a definitive answer considering the small size of our dataset.
@@ -995,9 +1001,11 @@ Interestingly, this assumption however does not seem to be supported by the aver
   \centering
   \begin{minipage}[b]{1\textwidth} 
     \caption[FilterOff compared to Ref Performance]{FilterOff compared to Ref Performance}\label{fig:filteroff-vs-ref}
-    \includegraphics[width=1\textwidth]{img/filteroff-vs-ref.png}
+    \centering
+    \includegraphics[height=1\textwidth, angle=90]{img/filteroff-vs-ref.pdf}
   \end{minipage}
 \end{figure}
+
 
 \autoref{fig:filteroff-vs-ref} shows the individual results of FilterOff and Ref in comparision. Overall, the plot does not reveal any unexpected values. Apart from one outlier that is most likely due to reasons outside of our implementation (similar to the outlier within ChangeOnly), the execution times are compareable between FilterOff and Ref executions. For the range of commits affected by the \texttt{KConfigReaderExtractor} bug, the execution times match almost exactly. As both the Preparation-Phase and Post-Extraction Phase do not introduce any noteworthy overhead, the computations for Ref and FilterOff within that range are fairly similar. The extractors are started and run until they terminate. Subsequently, the analysis notices that not all models are available and therefore terminates. As the analysis does not actually perform any computation on the models, those executions are free of randomization effects of the SAT-Solver resulting in the curve almost being linear and parallel to the y-axis.
 
@@ -1006,7 +1014,7 @@ Interestingly, this assumption however does not seem to be supported by the aver
 
 \section{Threats to Validity}\label{threats-to-validity}
 
-During the evaluation we used configuration files for KernelHaven that were largely taken over from existing configurations for non-incremental analyses. Those configurations were known to work with KernelHaven in general. More specifically we only worked with *.c files for the code model as this is the default setting as implemented within KernelHaven\footnote{as defined by the default value for \texttt{code.extractor.file\_regex} in \url{https://github.com/KernelHaven/KernelHaven/blob/master/src/net/ssehub/kernel_haven/config/DefaultSettings.java}}. Eventhough the incremental infrastructure is able to handle \texttt{*.h} files just as well with the UndertakerExtractor, we have not specifically tested a configuration which includes them for extraction and analysis. To overcome this threat to \emph{internal validity}, a repeated evaluation with multiple alternative configuration files would have been desirable but was not performed due to the lack of time until the deadline of this work.
+During the evaluation we used configuration files for KernelHaven that were largely taken over from existing configurations for non-incremental analyses. Those configurations were known to work with KernelHaven in general. More specifically we only worked with \texttt{*.c} files for the code model as this is the default setting as implemented within KernelHaven\footnote{as defined by the default value for \texttt{code.extractor.file\_regex} in \url{https://github.com/KernelHaven/KernelHaven/blob/master/src/net/ssehub/kernel_haven/config/DefaultSettings.java}}. Eventhough the incremental infrastructure is able to handle \texttt{*.h} files just as well with the UndertakerExtractor, we have not specifically tested a configuration which includes them for extraction and analysis. To overcome this threat to \emph{internal validity}, a repeated evaluation with multiple alternative configuration files would have been desirable but was not performed due to the lack of time until the deadline of this work.
 
 The evaluation has been performed on a subset of input files that cover about three months of the development within the Linux Kernel project. To further increase  \emph{conclusion validity} it would be desirable to repeat the evaluation with a larger set of input files. Furthermore, we already experienced one outlier within our evaluation that we investigated by repeating the execution of the analysis for a specific part of our evaluation results. This example shows that  performance results vary for individual analyses based on the same git-diff file which imposes a further threat to \emph{conclusion validity}.
 
