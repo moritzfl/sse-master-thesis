@@ -13,6 +13,7 @@
     \newpage}
     
 \usepackage{amsmath}
+\usepackage{rotating}
 \usepackage{longtable}
 \usepackage{graphicx}
 \usepackage{fancyhdr}
@@ -124,7 +125,12 @@ floeter@uni-hildesheim.de \par
 Matrikel-Nr: 236278 \par
 Supervisors: \par
 Prof. Dr. Klaus Schmid \par
-Christian Kr\"oher
+Christian Kr\"oher \par
+
+\includegraphics[height=3cm,keepaspectratio]{template/logo-left.pdf} \hfill \includegraphics[height=3cm,keepaspectratio]{template/logo-right.pdf} \par
+\hspace{8cm}
+
+\scriptsize{Software Systems Engineering - Institute for Informatics University of Hildesheim - Universit\"atsplatz 1 - D-31134 Hildesheim}
 \end{center}
 
 \afterpage{\blankpage}
@@ -266,7 +272,7 @@ In this section, we will take a closer look at how variability is incorporated i
   \end{minipage}
 \end{figure}
 
-\autoref{linux-build} shows an overview of the Linux Kernel build process as described by \cite{Dietrich:2012:RAV:2362536.2362544}. The Linux build system relies on the KConfig language, Kbuild system and the C-Preprocessor to implement variability within the Linux Kernel product line. KConfig files  define the variability model while the Kbuild files specify the build process. A concrete and valid configuration can be genererated by leveraging the information within KConfig files. The creation of such an configuration can be achieved through user interfaces that aid in the configuration process. The result is a \texttt{.config} file that represents a concrete configuration. The build process itself is fully automated. Using the \texttt{.config} file, the files \texttt{auto.conf} and \texttt{autoconf.h} are generated. Those files are used during the build process to translate the concrete configuration into a compiled product. The result is a compiled and executable linux variant (\texttt{vmlinux}) together with dynamically loadable modules (\texttt{drivers.ko})
+\autoref{linux-build} shows an overview of the Linux Kernel build process as described by \cite{Dietrich:2012:RAV:2362536.2362544}. The Linux build system relies on the KConfig language \cite{kconfig-language.txt}, Kbuild system \cite{makefiles.txt} and the C-Preprocessor to implement variability within the Linux Kernel product line. KConfig files  define the variability model while the Kbuild files specify the build process. A concrete and valid configuration can be genererated by leveraging the information within KConfig files. The creation of such an configuration can be achieved through user interfaces that aid in the configuration process. The result is a \texttt{.config} file that represents a concrete configuration. The build process itself is fully automated. Using the \texttt{.config} file, the files \texttt{auto.conf} and \texttt{autoconf.h} are generated. Those files are used during the build process to translate the concrete configuration into a compiled product. The result is a compiled and executable linux variant (\texttt{vmlinux}) together with dynamically loadable modules (\texttt{drivers.ko})
 
 The KConfig language is used to specify available configuration options and dependencies among them \cite{variabilitymodel-linux}. Thereby the KConfig files define the variability model of the Linux Kernel. In contrast to the example we used in Section \ref{spl} to introduce variability models, the variability model of Linux is a decision model and not a feature model. However,for simplification purposes, we will modify and extend the variability model shown in \autoref{featuremodel} to explain how variability is implemented within of the Linux Kernel. 
 
@@ -291,16 +297,16 @@ The Kbuild build system uses the \texttt{auto.make} file together with other Kbu
 Finally \texttt{autoconf.h} defines variables for each selected KConfig feature \cite{Tartler:2011:FCC:1966445.1966451}. Defined variables within \texttt{autoconf.h} are used to evaluate compiler directives for including or excluding code sequences. All variables prefixed with \texttt{CONFIG\_} are variability variables originating from KConfig files. \autoref{conditional-compilation} shows an examplary excerpt of source code. Lets assume that \texttt{autoconf.h} contained the line \texttt{\#define CONFIG\_\-NETWORK\_\-SUPPORT}. Because \texttt{CONFIG\_\-NETWORK\_\-SUPPORT} is defined, the \texttt{\#ifdef} statement within line 1 in our example evaluates to \texttt{true} and therefore line 2 is included for compilation of the  linux variant. If \texttt{CONFIG\_\-NETWORK\_\-SUPPORT} is not defined, line 4 gets included instad.
 
 \begin{lstlisting}[caption=Conditional Compilation within the Linux Kernel, label=conditional-compilation]{language=C}
- # ifdef CONFIG_NETWORK_SUPPORT
-   # return 0;
- # else 
-   # return 1;
- # endif
+ #ifdef CONFIG_NETWORK_SUPPORT
+   return 0;
+ #else 
+   return 1;
+ #endif
 \end{lstlisting}
 
 For performing analyses on software product lines, the variability information within the Linux Kernel codebase can be extracted to create data models. The variability information within source files is translated into a code model while KConfig files can be used to create a variability model. Finally the Kbuild files define the build model of the Linux Kernel. After obtaining the models, they can be used to perform analyses on the software product line.
 
-\subsection{Software Product Line Analyses}
+\subsection{Software Product Line Analyses} \label{software-analyses}
 
 This section will provide an overview of analyses that are tailored towards software product lines. We will later use the dead code analysis that will be introduced in Section \ref{feature-code-mapping}  for implementing an incremental analysis.
 
@@ -329,11 +335,11 @@ An example of such an analysis is the \textbf{dead code analysis} as performed b
 \autoref{dead-code} shows an example for dead code. Assuming the feature model as depicted in \autoref{featuremodel}, \texttt{CONFIG\_NETWORK\_SUPPORT} is automatically selected when \texttt{CONFIG\_NETWORK\_AUTHENTICATION} is selected. Therefore the conditions under which the encapsuled statement gets included for compilation can never be met.
 
 \begin{lstlisting}[caption=Dead Code, label=dead-code]{language=C}
- # ifdef CONFIG_NETWORK_AUTHENTICATION
-   # ifdef !CONFIG_NETWORK_SUPPORT
-     # printf("You can not sign in");
-   # endif
- # endif
+ #ifdef CONFIG_NETWORK_AUTHENTICATION
+   #ifdef !CONFIG_NETWORK_SUPPORT
+     printf("You can not sign in");
+   #endif
+ #endif
 \end{lstlisting}
 
 A condition that defines whether source code is included for compilation is called \emph{presence condition}. Through incorporation of the build model in the analysis, presence conditions can not only be extracted for blocks of code but also for source files. Let us assume a build model that excludes all source files related to network components during the build process when \texttt{NETWORK\_SUPPORT} was deselected during configuration. In this instance, any block within those files containing \texttt{\#ifdef !CONFIG\_NETWORK\_SUPPORT} would be considered a dead code block. The condition \texttt{!CONFIG\_NETWORK\_SUPPORT} can only evaluate to \texttt{true} if \texttt{NETWORK\_SUPPORT} is not selected - and if \texttt{NETWORK\_SUPPORT} is not selected, the files containing the condition do not get included. Within the dead code analysis, SAT solving is used to determine whether the constraints for including a codeblock can be fulfilled \cite{Tartler:2011:FCC:1966445.1966451}. As SAT is NP-hard, this process requires a considerable computational effort.
@@ -350,7 +356,7 @@ While the computations for variability-aware analyses are usually more costly th
 
 KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor software product lines such as the Linux Kernel \cite{KroeherEl-SharkawySchmid18}. It was initially created as a student project and is written in Java.  Since then, KernelHaven has been further developed and extended through numerous plugins. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilites of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in Section \ref{implementation}. 
 
-An overview over the KernelHaven architecture is shown in \autoref{pipeline}. Because KernelHaven targets C-Preprocessor based software product lines, it needs to be able to process build, variability and code model. KernelHaven achieves this by using extractors that extract data models from a given codebase. The analysis itself is then executed based on the extracted models. Extractors and analyses are configured as a pipeline through the Pipeline Configurator which uses a configuration-file to define the settings for the execution of KernelHaven. This configuration-file is translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. It is  important to note that KernelHaven-plugins do not read their settings directly from a configuration file. This implementation will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration read from the file.
+An overview over the KernelHaven architecture is shown in \autoref{pipeline}. KernelHaven uses extractors that extract data models for the code, build and variability model from a given codebase. The analysis itself is then executed based on the extracted models. A configuration-file defines settings for the execution of KernelHaven. Those settings are read by the Pipeline Configurator and translated into a configuration-object that then gets passed to each component of the pipeline by the PipelineConfigurator. Therefore KernelHaven-plugins do not read their settings directly from a configuration file but rather get passed a java-object containing those settings. This implementation detail will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration through plugins.
 
 \begin{figure}[h] 
   \centering
@@ -373,13 +379,13 @@ KernelHaven can be extended through three types of plugins:
 
 All of the plugins do not require adjustments to the main KernelHaven infrastructure but instead can be loaded as jar-files and automatically get added to the classpath when KernelHaven is started. Utility plugins do not really satisfy any plugin-interface of KernelHaven but contain components that are used by implementations of other plugin types. They must however still be loaded when KernelHaven is started as their components need to be accessible at runtime.
 
-A Preparation-Plugin can define tasks that get executed before the KernelHaven-Pipeline is started. This can for example be useful for preprocessing inputs. Furthermore a PreparationPlugins allows to apply modifications to the configuration-object before the object is used by Extractor or Analysis-Plugins. However,if no tasks need to be performed prior to the execution of the pipeline, no Preparation-Plugin needs to be defined for execution. 
+A Preparation-Plugin can define tasks that get executed before the KernelHaven-Pipeline is started. This can for example be useful for preprocessing inputs. Furthermore a PreparationPlugins allows to apply modifications to the configuration-object before the object is used by Extractor or Analysis-Plugins. However, if no tasks need to be performed prior to the execution of the pipeline, no Preparation-Plugin needs to be defined for execution. 
 
-Extractor-Plugins on the other hand are required to generate the models that the analysis can run on. There are three types of extractors: code model extractors, variability model extractors and build model extractors. Different extractors may work based on different files within the codebase. Furthermore the results of two different extractors for the same type of model may vary even if the same codebase was analyzed. This becomes clear when looking at two of the existing extractors for the code model. The TypeChef-Extractor based on the TypeChef-tool \cite{Kenner:2010:TTT:1868688.1868693} extracts a complete abstract syntax tree and uses macro expansion during the extraction of models from *.c files. The UndertakerExtractor based on the Undertaker-tool \cite{Tartler:2011:FCC:1966445.1966451} generates a representation of structure of \texttt{\#ifdef}-blocks.
+Extractor-Plugins on the other hand are required to generate the models that the analysis can run on. There are three types of extractors: code model extractors, variability model extractors and build model extractors. Different extractors may work based on different files within the codebase. Furthermore the results of two different extractors for the same type of model may vary even if the same codebase was analyzed. This becomes clear when looking at two of the existing extractors for the code model. The TypeChef-Extractor based on the TypeChef-tool \cite{Kenner:2010:TTT:1868688.1868693} extracts a complete abstract syntax tree and uses macro expansion during the extraction of models from *.c files. The UndertakerExtractor based on the Undertaker-tool \cite{Tartler:2011:FCC:1966445.1966451} generates a representation of the structure of presence conditions as described in \autoref{feature-code-mapping}.
 
-While the KernelHaven infrastructure benefits from a selection of various extractors for the code model of the Linux Kernel, currently only one extractor is publically available for the build and another for the variability model of the Linux Kernel \footnote{\url{https://github.com/KernelHaven/KernelHaven/blob/master/README.md}}. The build model can be extracted using the KconfigReaderExtractor based on the KConfigReader-tool \cite{ck-kconfig} while the code model can be extracted through the KBuildMinerExtractor using the KbuildMiner-tool \cite{ck-kbuild}.
+While the KernelHaven infrastructure benefits from a selection of various extractors for the code model of the Linux Kernel, currently only one extractor is available for the build and another for the variability model of the Linux Kernel \footnote{\url{https://github.com/KernelHaven/KernelHaven/blob/master/README.md}}. The build model can be extracted using the KconfigReaderExtractor based on the KConfigReader-tool \cite{ck-kconfig} while the code model can be extracted through the KBuildMinerExtractor using the KbuildMiner-tool \cite{ck-kbuild}.
 
-Both the KbuildMinerExtractor and the KconfigReaderExtractor are only able to extract the complete model represented through the codebase. This is not the case for the code model extractors which may also be configured to only process a subset of the files within the codebase. This is because the code model extractor is able to individually process each source file. Through header-files, extractors like the TypeChefExtractor might also consider other files when parsing one source file. Nevertheless an individual model for each source file is generated. This is not the case for KBuild and KConfig files as the KBuild and KConfig system both process complex dependencies that are spread between multiple files. Therefore the build- and variablity model are built viewing the information from all KConfig and KBuild files in total and not by looking at one individual file at a time.
+Both the KbuildMinerExtractor and the KconfigReaderExtractor are only able to extract the complete model represented through the codebase. This is not the case for the code model extractors which may also be configured to only process a subset of the files within the codebase. This is because the code model extractor is able to individually process each source file. Through header-files, extractors like the TypeChefExtractor might also consider other files when parsing one source file. Nevertheless an individual model for each source file is generated. This is not the case for KBuild and KConfig files as the KBuild and KConfig system both process complex dependencies that are spread across multiple files. Therefore the build- and variablity model are built viewing the information from all KConfig and KBuild files in total and not by looking at one individual file at a time.
 
 Extractors may be configured to write extracted models to a cache-directory in order to reuse them for subsequent exectutions of KernelHaven removing the need to extract them again. Therefore KernelHaven does not necessarily require extractors to run for each execution of KernelHaven if the models already have been extracted before.
 
@@ -573,7 +579,7 @@ After merging the models the second option can be applied. Depending on the anal
 
 This section describes the implementation of an infrastructure for incremental analyses and provides reasoning for the decisions made when engineering the infrastructure. The term \emph{incremental analyses} will henceforth be used as shorthand for incremental analyses that are block based as only those are targeteted by the implemented infrastructure (see REQ \ref{req:analysis-types}).
 
-The infrastructure itself is based on KernelHaven \cite{KernelHaven} as KernelHaven together with its plugins provides a working implementation for various software product line analyses. Through KernelHaven's plugin interfaces, it is also possible to implement the infrastructure for incremental analyses as a plugin itself.
+The infrastructure itself is based on KernelHaven \cite{KroeherEl-SharkawySchmid18} as KernelHaven together with its plugins provides a working implementation for various software product line analyses. Through KernelHaven's plugin interfaces, it is also possible to implement the infrastructure for incremental analyses as a plugin itself.
 
 By extending an existing infrastructure like KernelHaven, we can benefit from an existing codebase as well as future developments within the KernelHaven project. Furthermore future users of the incremental infrastructure can adjust existing non-incremental analyses written for KernelHaven to run as incremental analyses.
 
@@ -682,7 +688,7 @@ Therefore it makes sense to always use the \texttt{Simple\-Diff\-Analyzer} when 
 
 The \texttt{DiffFile}-object is generated before the filters are applied and then passed to them as input. The reason for not handling the interpretation of the git-diff file directly within the filters is that this would result in all three filters having to do the interpretation separately thereby creating computational overhead.
 
-The implementation of \texttt{Variability\-Diff\-Analyzer} relies on previous work which performed a commit based analysis of software product line evolution \cite{ComAn}. The tool used and implemented for this analysis  is called ComAn \cite{ComAn-tool}. Because the paper covers commits to the Linux Kernel, the tool is able to process git-diff files describing changes within the codebase of the Linux Kernel. 
+The implementation of \texttt{Variability\-Diff\-Analyzer} relies on previous work which performed a commit based analysis of software product line evolution \cite{ComAn}. The tool used and implemented for this analysis  is called ComAn \cite{coman-tool}. Because the paper covers commits to the Linux Kernel, the tool is able to process git-diff files describing changes within the codebase of the Linux Kernel. 
 
 ComAn allows to extract the number of lines where variability information is modified for each changed file that is described in the git-diff file. This information is used within the \texttt{Variability\-Diff\-Analyzer} to determine which files contain variability changes. If one or more lines within the changes for a file modified variability information, the file is marked as \texttt{CHANGE}. Otherwise it is marked as \texttt{NO\_CHANGE} or \texttt{NOT\_A\_VARIABILITY\_FILE} depending on whether ComAn considers it to be a filetype that could be relevant for variability within the codebase. 
 
