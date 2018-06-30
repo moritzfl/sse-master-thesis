@@ -142,8 +142,7 @@ Christian Kr\"oher \par
 
 \pagenumbering{roman}
 
-\begin{verbatim}
-\end{verbatim}
+
 \Large \textbf{Eigenst\"andigkeitserkl\"arung} \normalsize
 
 
@@ -151,11 +150,21 @@ Christian Kr\"oher \par
 
 Ich versichere hiermit, dass ich die vorstehende Arbeit selbstständig verfasst und keine anderen als die angegebenen Hilfsmittel benutzt habe. Die Stellen der obigen Arbeit, die anderen Werken dem Wortlaut oder dem Sinn nach entnommen wurden, habe ich in jedem Fall durch die Angabe der Quelle bzw. der Herkunft, auch der benutzten Sekund\"arliteratur, als Entlehnung kenntlich gemacht. Dies gilt auch f\"ur Zeich\-nun\-gen, Skizzen, bildliche Dar\-stel\-lung\-en sowie f\"ur Quellen aus dem Internet und anderen elektronischen Text- und Datensammlungen und dergleichen. Die eingereichte Arbeit ist nicht anderweitig als Pr\"u\-fungs\-leis\-tung verwendet worden oder in deutscher oder einer anderen Spra\-che als Ver\-\"off\-ent\-lich\-ung erschienen. Mir ist bewusst, dass wahrheitswidrige Angaben als Täu\-schung behandelt werden.
 
-Lehrte, den 29.06.2018
+Lehrte, den 02.07.2018
 
 
 \unitlength 5mm
 \begin{picture}(5,4) \put(0,0) {\line(1,0){22}} \end{picture}\\
+\afterpage{\blankpage}
+ 
+\newpage
+
+\Large \textbf{Abstract} \normalsize
+
+Software product lines allow efficient development of software by reusing assets across a range of similar configured products. Analyses aim to aid development and to provide insight about a software product. However, because a software product line can represent a multitude of products, different possiblities for combining and configuring assets need to be considered. Therefore analyses on software product lines do come with considerable computational cost.  When changes are introducted during development, the analysis has to be repeated with similar computational cost - even if only a  part of the assets within the product line changed.
+
+This work aims to reduce the computational effort for analyzing such changes. Our concept introduces incremental analyses which identify relevant information about the introduced change. An incremental analysis then uses this information to determine whether and on what parts the analysis has to run. For this work, we limit the scope to block based analyses such as the dead code analysis as implemented by Undertaker \cite{Tartler:2011:FCC:1966445.1966451}.
+
 \afterpage{\blankpage}
  
 \newpage
@@ -345,7 +354,7 @@ A condition that defines whether source code is included for compilation is call
 
 \subsubsection{Variabilty-Aware Analyses}
 
-A variability-aware analysis covers artifacts of the software product line without analyzing products individually \cite[p.261]{Apel:2013:FSP:2541773}. It aims to generate a result that allows to draw conclusions for individual configurations. In contrast to feature-to-code-mapping Analyses, Variability-aware analyses also incorporate effects of statements and function calls within the analysis. As already described in \autoref{introduction}, such analyses are not targeted by this work but nevertheless get mentioned here for completeness.
+A variability-aware analysis covers artifacts of the software product line without analyzing products individually \cite[p.261]{Apel:2013:FSP:2541773}. It aims to generate a result that allows to draw conclusions for individual configurations. In contrast to feature-to-code-mapping Analyses, Variability-aware analyses also incorporate effects of statements and function calls within the analysis.
 
 Typechef is an example for a variability-aware analysis that performs type checking on software product lines \cite{Dietrich:2012:RAV:2362536.2362544}. Type checking can be used to identify type errors like dangling method references and duplicate class names \cite{Thum:2014:CSA:2620784.2580950}. Typically the compiler checks for type errors when compiling a single product.  Variability-aware  checking helps to ensure that all variants of a product line are well typed without having to compile each variant \cite{Kenner:2010:TTT:1868688.1868693}. Typechef however requires more information than Undertaker within the code model and therefore uses a variability-aware parser for C-code that builds an abstract syntax tree which is then used to perform the analysis.
 
@@ -403,7 +412,7 @@ The information on each requirement consists of the following four elements:
     \item [Priority]
 	This describes the priority of a requirement. The priority is given through the keywords Must, Should and May. The usage of the definitions takes RFC 2119 \cite{RFC-bum} as a guideline. Therefore \emph{Must} describes a requirement that has to be implemented. \emph{Should} indicates that the implemenentation of the requirement is strongly desired. Not fulfilling a Should requirement  does however still result in an acceptable overall system if the Must requirements are met. Finally, \emph{May} indicates a truly optional requirement. Those requirements represent additions to the system that are considered useful but at the same time are not valued as high as Must or Should requirements.
     \item [Source]
-    The Source-field describes the origin of the requirement. \emph{Interview} indicates that the source of information was an interview with my supervisor. \emph{Initial Description} indicates that the source of the requirements was the written description of the thesis goal as provided through my supervisor. 
+    Source describes the origin of the requirement. \emph{Interview} indicates that the source of information was an interview with my supervisor. \emph{Initial Description} indicates that the source of the requirements was the written description of the thesis goals as provided through my supervisor. \emph{Feedback from Presentation} refers to feedback that was provided in the context of a presentation of the concept for my supervisors workgroup.
     \item [Description]
     This field provides a description of the requirement.
     \item [Explanation]
@@ -528,7 +537,7 @@ The information on each requirement consists of the following four elements:
 	\vspace{1em}
 	\begin{subreq}[Incremental Dead Code Analysis Result Coverage] \label{req:coverage}
     \reqtable
-    {Must}  {Interview, Feedback from Presentation of Initial Concept}
+    {Must}  {Interview, Feedback from Presentation}
 	{The dead code analysis should produce a result that only contains dead code blocks that were found during the latest analysis executions.}
 	{As the analysis should provide feedback for the developer on his work, parts of the software system which could not have been affected by the changes he introduced do not need to be represented in the result. Therefore merging the result of the increment with previous results is not desired.}
 	\end{subreq}
@@ -1069,8 +1078,8 @@ This section discusses threads to validity concerning this work. We will cover f
 
 In this work, we described an approach to improve the performance of analyses of software product lines. Our approach introduces incremental analyses that work based on the newly introduced changes to a product line instead of reanalyzing the entire codebase. We implemented our approach through the technical realization of an incremental dead code analysis. The implementation was then evaluated by comparing results and performance to an existing non-incremental implementation.
 
-Our implementation of an incremental dead code analysis demonstrates significant improvements to performance. Overall, we were able to achieve roughly between five to ten times faster performance compared to the reference system while still obtaining consistent results. 
-In fact, most executions of our incremental analyses only took a few seconds to finish thereby allowing   almost instant feedback for developers. The largest leaps in performance were achieved by partial analyses that only processed updated parts of the code model. The results of such partial analyses reliably provided the same information about variability related dead code blocks that was gained by performing a full analysis in the reference system. 
+Our implementation of an incremental dead code analysis demonstrates significant improvements to performance (RQ 2). Overall, we were able to achieve roughly between five to ten times faster performance compared to the reference system while still obtaining consistent results. 
+In fact, most executions of our incremental analyses only took a few seconds to finish thereby allowing   almost instant feedback for developers. The largest leaps in performance were achieved by partial analyses that only processed updated parts of the code model. The results of such partial analyses reliably provided the same information about variability related dead code blocks that was gained by performing a full analysis in the reference system (RQ 1, RQ 1.1). 
 
 Through the reduced computational effort for analysis executions, our approach enables shorter analyses for software product lines. For most executions, developers can obtain feedback on their changes within seconds. However, we still do have performance spikes in instances where a more substantial part of the software product line needs to be analyzed in about 10\% to 20\% of executions. While the perfomance in such situations is still comparable with the reference system, it is significantly higher than other executions of our incremental dead code analysis. In fact those spikes made up 99\% of the accumulated duration required for all analyses on our evaluation dataset. Therefore future research focusing on the reduction of the duration or frequency of such performance spikes would be beneficial. This could potentially be achieved through the creation of extractors that enable the partial extraction of build or variability model. Another approach would be to write analyses that directly work with the information from the HybridCache. Through the HybridCache, analyses get access to two versions of the models that they can compare. Using that information to determine which parts of the models to process, they might be able to reduce the computational effort. The reduction of performance spikes could then allow even better versatility for performing analyses in the context of continuous integration or the application of software product line analyses on less powerful computer systems like developer workstations or laptops.
 Additionally the implementation of incremental analyses other than the dead code analysis could be useful for investigating whether the concept of incremental analyses is transferable to other analysis types.
