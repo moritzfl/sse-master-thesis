@@ -59,7 +59,7 @@
 %\Setzt Dokumentinformationen
 \title{\large Master-Thesis in Informationsmanagement und Informationstechnologie: \\ \Huge Prototypical Realization and Validation of an Incremental Software Product Line Analysis Approach}
 \author{Moritz Fl\"oter}
-\date{June 2018}
+\date{July 2018}
 
 
 \begin{document}
@@ -122,8 +122,8 @@
 floeter@uni-hildesheim.de \par
 Matrikel-Nr: 236278 \par
 Supervisors: \par
-Prof. Dr. Klaus Schmid \par
-Christian Kr\"oher \par
+Prof. Dr. Klaus Schmid, SSE \par
+Christian Kr\"oher (M.Sc.), SSE\par
 
 \includegraphics[height=3cm,keepaspectratio]{template/logo-left.pdf} \hfill \includegraphics[height=3cm,keepaspectratio]{template/logo-right.pdf} \par
 \hspace{8cm}
@@ -316,7 +316,7 @@ For performing analyses on software product lines, the variability information w
 
 \subsection{Software Product Line Analyses} \label{software-analyses}
 
-This section will provide an overview of analyses that are tailored towards software product lines. We will later use the dead code analysis that will be introduced in Section \ref{feature-code-mapping}  for implementing an incremental analysis.
+This section will provide an overview of analyses that are tailored towards software product lines. We will later use the dead code analysis that will be introduced in Section \ref{feature-code-mapping}  for implementing an incremental analysis. While our concept covers a specific type of analyses, the overall approach might be applicable to other analyses as well. Furthermore, the implementation we describe in \autoref{implementation} will be built based on an existing project that already supports other types of analyses. 
 
 Measuring of relevant parameters (e.g. performance), testing and analyzing products is well established for individual products \cite[p.243]{Apel:2013:FSP:2541773}. 
 In order to apply those methods on a product line, a simple approach would be to analyze every possible permutation of feature combinations that is possible as a single product using the same established methods. For a product line with 33 independently selectable features and an analysis time of one second per permutation this would however result in an insurmountable computational effort of more than 272 years \cite{Thum:2014:CSA:2620784.2580950}. 
@@ -364,7 +364,7 @@ While the computations for variability-aware analyses are usually more costly th
 
 KernelHaven is a an infrastructure for variability-based analyses of C-preprocessor software product lines such as the Linux Kernel \cite{KroeherEl-SharkawySchmid18}. It was initially created as a student project and is written in Java.  Since then, KernelHaven has been further developed and extended through numerous plugins. This section  provides an overview over the overall concept and features of KernelHaven and then describes the possibilities of extending KernelHaven through plugins. KernelHaven and its plugin infrastructure constitute the foundation for the system developed for incremental analyses that is described in \autoref{implementation}. 
 
-An overview over the KernelHaven architecture is shown in \autoref{pipeline}. KernelHaven uses extractors that extract data models for the code, build and variability model from a given codebase. The analysis itself is then executed based on the extracted models. A configuration-file defines settings for the execution of KernelHaven. Those settings are read by the Pipeline Configurator and translated into a configuration-object which then gets passed to each component of the pipeline by the PipelineConfigurator. Therefore KernelHaven-plugins do not read their settings directly from a configuration file but rather get passed a java-object containing those settings. This implementation detail will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration through Preparation-Plugins as explained later in this section.
+An overview over the KernelHaven architecture is shown in \autoref{pipeline}. KernelHaven uses extractors that extract data models for the code, build and variability model from a given codebase. The analysis itself is then executed based on the extracted models. A configuration-file defines settings for the execution of KernelHaven. Those settings are read by the Pipeline Configurator and translated into a configuration-object which then gets passed to each component of the pipeline by the PipelineConfigurator. Therefore KernelHaven-plugins do not read their settings directly from a configuration file but rather get passed a java-object containing those settings. This implementation detail will become relevant later as KernelHaven offers entry points to perform adjustments to the configuration through Preparation-Plugins as explained in this section.
 
 \begin{figure}[h] 
   \centering
@@ -584,7 +584,7 @@ Therefore filtering for direct file changes or variability changes within a sing
 
 At the end of the extraction process, the complete code, build and variability model can be provided by merging the extracted parts with the models representing the previous state of the codebase. This allows the analysis to have full access to the models even though the computational effort was reduced for the extraction itself. Merging the results however means that we need to have access to the models representing the state of the codebase for the previous execution. Furthermore we need to be able to revert to those models if our analysis reveals code defects. If defects are detected, the proposed changes might get reverted by the developer or rejected by a pre-commit-hook. Afterwards, new changes based on the initial state of the codebase might get suggested that need to get analyzed. Therefore we need a model storage that is able to at provide access to at least two versions of the models.
 
-After merging the models the second option can be applied. Depending on the analysis that is performed, it is possible that only a part of the models must be processed because the analysis-results for the other parts were unaffected by the changes to the codebase. The dead code analysis is an example for an analysis that is able to work based on a partial code model. The implementation of the dead code analysis is described in \autoref{incremental-dead-code-analysis}.
+After merging the models, the second option can be applied. Depending on the analysis that is performed, it is possible that only a part of the models must be processed because the analysis-results for the other parts were unaffected by the changes to the codebase. The dead code analysis is an example for an analysis that is able to work based on a partial code model. The implementation of the dead code analysis is described in \autoref{incremental-dead-code-analysis}.
 
 
 \clearpage
@@ -950,7 +950,7 @@ Given that the results now are consistent with the reference, we continued to ev
 \begin{tabular}{|l | l | l | l|}
 \hline
                                & Change                 & VarChange          & Ref  \\ \hline
-	Preparation                & 0.072 s                & 11.72 s            & 0.00 s \\
+	Preparation                & 0.07 s                & 11.72 s            & 0.00 s \\
 	\underline{E}xtraction     & 26.22 s                & 11.70 s            & 608.80 s \\
 	\underline{A}nalysis       & 407.94 s               & 157.25 s           & 1792.80 s \\
 	\underline{O}verlap        & 0.00 s                 & 0.00 s             & 501.45 s \\
@@ -1168,17 +1168,19 @@ The configuration options described within the template are extended by addition
 \emph{Note: While most of the entries below are not contained in the template file, this list also includes entries that are included within the template file but are especially important for the incremental infrastructure.}
 
 \begin{description}
-	\item[\texttt{analysis.class}] This setting defines the analysis class through its fully qualified class name. For an incremental analysis, the analysis used must be an implementation of \texttt{PipelineAnalysis} and process the extractors output through the \texttt{IncrementalPostExtraction} AnalysisComponent. At the moment there are no automatic checks that detect incremental analyses. Therefore you need to refer to the implementation of the analysis.
-	\item[\texttt{preparation.class.0}] This setting defines the preparation class through its fully qualified class name. For an incremental analysis, this must be \texttt{IncrementalPreparation}. \\
+	\item[\texttt{analysis.class}] This setting defines the analysis class through its fully qualified class name. For an incremental analysis, the analysis used must be an implementation of \texttt{PipelineAnalysis} and process the extractors output through the \texttt{IncrementalPostExtraction} AnalysisComponent. At the moment there are no automatic checks that detect incremental analyses. Therefore you need to refer to the implementation of the analysis. 
+	\item[\texttt{preparation.rollback}] If this setting is set to true, a rollback is performed. The rollback reverts changes made to the hybrid cache an codebase during the previous execution. \\
+		\emph{default value: false}
+	\item[\texttt{preparation.class.0}] This setting defines the preparation class through its fully qualified class name. For an incremental analysis, this must be \texttt{IncrementalPreparation}. 
 	\item[\texttt{incremental.hybrid\_cache.dir}] Path to the folder where models get stored for the \texttt{HybridCache}.
 	\item[\texttt{incremental.input.source\_tree\_diff}] Path to the git-diff file describing the changes that need to be processed by the incremental analysis.
 	\item[\texttt{incremental.diff\_analyzer\_class}] This defines the \texttt{DiffAnalyzer} that is used to interpret the git diff file through its fully qualified class name. \\
 	    \emph{default value: VariabilityDiffAnalyzer}
-	\item[\texttt{incremental.code.filter}] This defines the \texttt{InputFilter} that is used to for definine the input for the code extractor through its fully qualified class name. 
+	\item[\texttt{incremental.code.filter}] This defines the \texttt{InputFilter} that is used to for definine the input for the code extractor through its fully qualified class name. \\
 	    \emph{default value: DefaultFilter}
-	\item[\texttt{incremental.build.filter}] This defines the \texttt{InputFilter} that is used to determine whether the build model needs to be extracted through its fully qualified class name.
+	\item[\texttt{incremental.build.filter}] This defines the \texttt{InputFilter} that is used to determine whether the build model needs to be extracted through its fully qualified class name. \\
 	    \emph{default value: DefaultFilter} 
-	\item[\texttt{incremental.variability.filter}] This defines the \texttt{InputFilter} that is used to determine whether the variability model needs to be extracted through its fully qualified class name. 
+	\item[\texttt{incremental.variability.filter}] This defines the \texttt{InputFilter} that is used to determine whether the variability model needs to be extracted through its fully qualified class name. \\
 	    \emph{default value: DefaultFilter}
 	\item[\texttt{code.extractor.file\_regex}] Regular expression that is used to determine which files the code extractor should consider for extraction. The same expression may also be used by \texttt{InputFilter}s to determine which files within the codebase belong to the code model. \\
 	    \emph{default value:} \lstinline[columns=fixed]{.*\.c}
@@ -1234,9 +1236,7 @@ public class MyPipelineAnalysis extends PipelineAnalysis {
 		         getVmComponent()
 		    )
 		);
-
 	}
-
 }
 \end{lstlisting}
 
@@ -1276,31 +1276,50 @@ This section lists the settings used for the evaluation of the incremental infra
 This is the configuration used to generate the results of a non-incremental dead code analysis as the baseline to compare against for all incremental analyses.
 
 \begin{lstlisting}[language=java]
-# General
+# General Pipeline Parameters 
 resource_dir = res/
-output_dir = output/incremental/
+output_dir = output/reference/
 plugins_dir = plugins/
+cache_dir = cache/
 archive = false
-archive.dir = archive/incremental
-log.dir = log/incremental/
+archive.dir = archive/reference
+### Logging ###
+log.dir = log/reference/
 log.console = false
 log.file = true
 log.level = DEBUG
+
+# Analysis Parameters
+analysis.class = net.ssehub.kernel_haven.undead_analyzer.ThreadedDeadCodeAnalysis
+analysis.undead.threads = 20
+
+# Common Extractor Parameters
 source_tree = source-code/linux/
 arch = x86
 
-# Analysis  
-analysis.class =  ThreadedDeadCodeAnalysis
-analysis.undead.threads = 20
+# Code Model Parameters
 
-# Extractors  
-code.extractor.class = UndertakerExtractor
+code.provider.timeout = 0
+code.provider.cache.write = false
+code.provider.cache.read = false
+code.extractor.class = net.ssehub.kernel_haven.undertaker.UndertakerExtractor
+
 code.extractor.file_regex = .*\.c
 code.extractor.threads = 1
 code.extractor.process_ram = 10G
 code.extractor.fuzzy_parsing = true
-build.extractor.class = KbuildMinerExtractor
-variability.extractor.class = KconfigReaderExtractor
+
+# Build Model Parameters
+build.provider.timeout = 0
+build.provider.cache.write = false
+build.provider.cache.read = false
+build.extractor.class = net.ssehub.kernel_haven.kbuildminer.KbuildMinerExtractor
+
+# Variability Model Parameters
+variability.provider.timeout = 0
+variability.provider.cache.write = false
+variability.provider.cache.read = false
+variability.extractor.class = net.ssehub.kernel_haven.kconfigreader.KconfigReaderExtractor
 \end{lstlisting}
 
 \subsubsection{Change configuration}
@@ -1328,7 +1347,7 @@ analysis.class = net.ssehub.kernel_haven.incremental.analysis.IncrementalThreade
 incremental.hybrid_cache.dir = hybrid_cache/
 incremental.input.source_tree_diff = DIFF_FILE_GENERATED_VALUE
 preparation.class.0 = net.ssehub.kernel_haven.incremental.preparation.IncrementalPreparation
-incremental.code.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.SimpleDiffAnalyzer
+incremental.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.SimpleDiffAnalyzer
 analysis.undead.threads = 20
 incremental.code.filter = net.ssehub.kernel_haven.incremental.preparation.filter.ChangeFilter
 incremental.build.filter = net.ssehub.kernel_haven.incremental.preparation.filter.ChangeFilter
@@ -1389,7 +1408,7 @@ analysis.class = net.ssehub.kernel_haven.incremental.analysis.IncrementalThreade
 incremental.hybrid_cache.dir = hybrid_cache/
 incremental.input.source_tree_diff = DIFF_FILE_GENERATED_VALUE
 preparation.class.0 = net.ssehub.kernel_haven.incremental.preparation.IncrementalPreparation
-incremental.code.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.VariabilityDiffAnalyzer
+incremental.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.VariabilityDiffAnalyzer
 
 analysis.undead.threads = 20
 incremental.code.filter = net.ssehub.kernel_haven.incremental.preparation.filter.VariabilityChangeFilter
@@ -1453,7 +1472,7 @@ analysis.class = net.ssehub.kernel_haven.incremental.analysis.IncrementalThreade
 incremental.hybrid_cache.dir = hybrid_cache/
 incremental.input.source_tree_diff = DIFF_FILE_GENERATED_VALUE
 preparation.class.0 = net.ssehub.kernel_haven.incremental.preparation.IncrementalPreparation
-incremental.code.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.SimpleDiffAnalyzer
+incremental.diff_analyzer_class = net.ssehub.kernel_haven.incremental.diff.analyzer.SimpleDiffAnalyzer
 
 analysis.undead.threads = 20
 incremental.code.filter = net.ssehub.kernel_haven.incremental.preparation.filter.DefaultFilter
