@@ -3,17 +3,17 @@ pipeline {
   stages {
     stage('latex') {
       steps {
-        sh 'make pdf compiler=xelatex texfile=master-thesis'
+        sh 'make pdf compiler=xelatex texfile=text/master-thesis'
       }
     }
     stage('clean') {
       steps {
-        sh 'make clean texfile=master-thesis'
+        sh 'make clean texfile=text/master-thesis'
       }
     }
     stage('archive') {
       steps {
-        archiveArtifacts 'master-thesis.pdf'
+        archiveArtifacts 'text/master-thesis.pdf'
       }
     }
   }
