@@ -16,49 +16,20 @@
 %--------------------------------------------------------------------------
 % aspectratio -> 4:3 -> 43, 16:9 -> 169, 16:10 -> 1610 etc.
 %--------------------------------------------------------------------------
-\documentclass[compress, aspectratio=43, noserifmath]{beamer}
+\documentclass[aspectratio=43, noserifmath]{beamer}
 %--------------------------------------------------------------------------
 % Common packages
 %--------------------------------------------------------------------------
 \usepackage[german]{babel}
 \usepackage{minted}
 \usepackage{graphicx}
-\usepackage{multicol}
-\usepackage{listingsutf8}
-% Erweiterte Tabellenfunktionen
-\usepackage{tabularx,ragged2e}
-\usepackage{booktabs}
-% Listingserweiterung
-\usepackage{listings}
-\lstset{ %
-language=[LaTeX]TeX,
-basicstyle=\normalsize\ttfamily,
-keywordstyle=,
-numbers=left,
-numberstyle=\tiny\ttfamily,
-stepnumber=1,
-showspaces=false,
-showstringspaces=false,
-showtabs=false,
-breaklines=true,
-frame=tb,
-framerule=0.5pt,
-tabsize=4,
-framexleftmargin=0.5em,
-framexrightmargin=0.5em,
-xleftmargin=0.5em,
-xrightmargin=0.5em
-}
+
 
 %--------------------------------------------------------------------------
 % Load theme
 %--------------------------------------------------------------------------
 \usetheme{freshroboto}
 
-
-% must be loaded after theme
-\usepackage{tikz}
-\usetikzlibrary{mindmap,backgrounds}
 
 %--------------------------------------------------------------------------
 % General presentation settings
@@ -97,7 +68,6 @@ xrightmargin=0.5em
 
 
 \section{Idee \& Motivation}
-\subsection{Idee \& Motivation}
 
 \begin{frame}{Ausgangssituation}
 \begin{itemize}
@@ -123,9 +93,8 @@ Umsetzung auf Basis von KernelHaven
 
 
 \section{Grundlagen}
-\subsection{Grundlagen}
 
-\begin{frame}{Linux Build System}
+\begin{frame}{Linux Build Process}
 \includegraphics[width=1\textwidth]{image/linux-build-system.pdf}
 \end{frame}
 
@@ -201,14 +170,15 @@ config NETWORK_AUTHENTICATION
 \end{frame}
 
 \section{Konzept \& Implementierung}
-\subsection{Konzept \& Implementierung}
 
 \begin{frame}{Reduzierung des Aufwands}
 
 Neu eingef\"uhrte Ver\"anderungen bestimmen, was erneut verarbeitet werden muss.
+\pause
 \begin{enumerate}
 	\item Extraktion \\
 	\emph{Die Extraktion der Modelle muss nicht vollst\"andig neu durchgef\"uhrt werden}
+	\pause
 	\item Analyse \\
 	\emph{Die Analyse muss nicht vollst\"andig neu durchgef\"uhrt werden}
 \end{enumerate}
@@ -257,22 +227,24 @@ $ git apply --reverse path/to/git.diff
 \end{minted}
 
 \end{frame}
-
-%TODO: Übergänge fixen
 \begin{frame}[containsverbatim]{Preparation-Phase}
 2. Filtern von Dateien f\"ur Extraktion \\
 Filter arbeiten auf Basis von folgenden Informationen:
+\pause
 \begin{itemize}
     \item[\textbullet] Dateiver\"anderung \\ \emph{Hinzuf\"ugen, Modifizieren, L\"oschen}
+    \pause
     \item[\textbullet] Variabilit\"ats\"anderung \\ \emph{Wurde Variabilit\"atsinformation ver\"andert?}
+    \pause
     \item[\textbullet] Codebase \\ \emph{Ein Filter hat Zugriff auf alle Dateien in der Codebase}
+    \pause
     \item[\textbullet] Regul\"arer Ausdruck \\ \emph{Welche Dateien (*.c/*.h/KConfig etc.) sollen ber\"ucksichtigt werden?}
 \end{itemize}
 \end{frame}
 
 \begin{frame}[containsverbatim]{Preparation-Phase - Filtertypen}
 
-Jeder Filter gibt eine Liste von Dateien zur\"uck, welche f\"ur die Extraktion ber\"ucksichtigt werden.
+Jeder Filter gibt eine \emph{Liste von Dateien} zur\"uck, welche f\"ur die Extraktion ber\"ucksichtigt werden.
 
 Code, Build und Variability Dateien werden separat gefiltert.
 
@@ -292,7 +264,9 @@ Umgesetzte Filter:
 
 \begin{itemize}
     \item[\textbullet] Liste von Build Dateien nicht leer \\ $\rightarrow$ Build Model \alert{komplett} neu extrahieren
+    \pause
     \item[\textbullet] Liste von Variability Dateien nicht leer \\ $\rightarrow$ Variability Model \alert{komplett} neu extrahieren
+    \pause
     \item[\textbullet] Liste von Code Dateien nicht leer \\ $\rightarrow$ Code Model \alert{f\"ur diese Dateien} neu extrahieren
 \end{itemize}
 \end{frame}
@@ -355,13 +329,11 @@ Was leistet der HybridCache?
 \end{frame}
 
 \section{Dead Code Analyse}
-\subsection{Dead Code Analyse}
-
 \begin{frame}{Dead Code Analyse - Ausgangssituation}
 
 \begin{itemize}
     \item[\textbullet] nicht inkrementelle Variante existiert bereits
-    \item[\textbullet] HybridCache ist bei bestehender Implementierung nicht als Input m\"oglcih
+    \item[\textbullet] HybridCache ist bei bestehender Implementierung nicht als Input m\"oglich
 \end{itemize}
 \end{frame}
 
@@ -392,17 +364,35 @@ weitergegeben werden.
 
 \section{Evaluation}
 
-\subsection{Evaluation}
-
 \begin{frame}{Evaluation}
 Vier Konfigurationen:
 \begin{itemize}
     \item[\textbullet] Ref
+    \item[\textbullet] FilterOff
     \item[\textbullet] Change
     \item[\textbullet] VarChange
-    \item[\textbullet] FilterOff
 \end{itemize}
 angewendet auf 306 Commits Linux Kernels (ca. 3 Monate)
+\end{frame}
+
+
+\begin{frame}{Evaluation - Konsistenz der Ergebnisse}
+
+\begin{itemize}
+    \item FilterOff\\
+    \begin{itemize}
+        \item enth\"alt \alert{alle} Dead Code Bl\"ocke, die Ref enth\"alt
+    \end{itemize}
+    \item Change \\
+    \begin{itemize}
+        \item enth\"alt \alert{alle neuen} Dead Code Bl\"ocke
+    \end{itemize}
+    \item VarChange\\
+    \begin{itemize}
+        \item enth\"alt \alert{alle neuen variabilit\"atsbezogenen} Dead Code Bl\"ocke
+        \item weicht teilweise in Zeilennummern der Dead Code Bl\"ocke ab
+    \end{itemize}
+\end{itemize}    
 \end{frame}
 
 \begin{frame}{Evaluation - Change}
@@ -444,21 +434,9 @@ angewendet auf 306 Commits Linux Kernels (ca. 3 Monate)
 \end{frame}
 
 
-\begin{frame}{Evaluation - Konsistenz der Ergebnisse}
 
-\begin{itemize}
-    \item Change \\
-    \begin{itemize}
-        \item enth\"alt alle neuen Dead Code Bl\"ocke
-    \end{itemize}
-    \item VarChange\\
-    \begin{itemize}
-        \item enth\"alt alle neuen \emph{variabilit\"atsbezogenen} Dead Code Bl\"ocke
-        \item weicht teilweise in Zeilennummern der Dead Code Bl\"ocke ab
-    \end{itemize}
-\end{itemize}
-\end{frame}
 
+\section{Fazit}
 \begin{frame}{Fazit}
 
 Inkrementelle Analysen
