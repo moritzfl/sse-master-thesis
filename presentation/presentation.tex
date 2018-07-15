@@ -227,7 +227,7 @@ $ git apply --reverse path/to/git.diff
 \end{minted}
 
 \end{frame}
-\begin{frame}[containsverbatim]{Preparation-Phase}
+\begin{frame}{Preparation-Phase}
 2. Filtern von Dateien f\"ur Extraktion \\
 Filter arbeiten auf Basis von folgenden Informationen:
 \pause
@@ -258,7 +258,7 @@ Umgesetzte Filter:
 
 \end{frame}
 
-\begin{frame}[containsverbatim]{Preparation-Phase}
+\begin{frame}{Preparation-Phase}
 
 3. Anpassen der Konfiguration \\
 
@@ -292,30 +292,22 @@ Umgesetzte Filter:
 \begin{frame}[containsverbatim]{Post-Extraction-Phase}
 
 1. Einholen der Ergebnisse von Extraktoren
-
-\texttt{extractor.getNextResult();}
-
+\begin{minted}{java}
+extractor.getNextResult();
+\end{minted}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Post-Extraction-Phase}
-
+\begin{frame}{Post-Extraction-Phase}
 2. Zusammenf\"uhren mit Ergebnissen der vorigen Extraktion
-
-Konzept des HybridCache:
-\begin{itemize}
-    \item Ausgangssituation: \\ 
-    \begin{itemize}
-        \item[\textbullet]  Ordner 'current' enth\"alt Modelle zum vorigen Stand der Codebase
-    \end{itemize}
-    \item Verarbeitung der neuen Ergebnisse: \\
-    \begin{itemize}
-        \item[\textbullet] neu extrahierte Modelle ersetzen bisherige Modelle 
-        \item[\textbullet] ersetzte Modelle werden in 'history'-Ordner verschoben
-    \end{itemize}
-\end{itemize}
-
-
+Konzept des HybridCache
+    \begin{center}
+        \includegraphics<1>[width=.8\linewidth]{image/HybridCache-0.pdf}
+        \includegraphics<2>[width=.8\linewidth]{image/HybridCache-1.pdf}
+        \includegraphics<3>[width=.8\linewidth]{image/HybridCache-2.pdf}
+        \includegraphics<4>[width=.8\linewidth]{image/HybridCache-3.pdf}
+    \end{center}
 \end{frame}
+
 
 
 \begin{frame}[containsverbatim]{Post-Extraction-Phase}
