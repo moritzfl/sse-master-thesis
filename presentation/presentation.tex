@@ -23,6 +23,8 @@
 \usepackage[german]{babel}
 \usepackage{minted}
 \usepackage{graphicx}
+\usepackage[square,numbers]{natbib}
+\bibliographystyle{alpha}
 
 
 %--------------------------------------------------------------------------
@@ -72,7 +74,7 @@
 \begin{frame}{Ausgangssituation}
 \begin{itemize}
         \item[\textbullet] Analysen unterst\"utzen Softwareentwicklung
-        \item[\textbullet] Analysen f\"ur Software Produktlinien (SPL) sind rechenintensiv
+        \item[\textbullet] Analysen f\"ur Software Produktlinien (SPL) sind rechenintensiv \cite{Thum:2014:CSA:2620784.2580950}
         \item[\textbullet] Relativ sp\"ate Verf\"ugbarkeit von Ergebnissen
         \item[\textbullet] Entwickler macht mittlerweile was anderes
 \end{itemize}
@@ -141,6 +143,8 @@ obj-y += other-drivers/
    return 1;
  #endif
 \end{minted}
+
+Verst\"andnis von Variabilit\"atsinformation nach Kr\"oher et al. \cite{ComAn-splc}
 \end{frame}
 
 
@@ -148,7 +152,13 @@ obj-y += other-drivers/
 
 
 \begin{frame}{KernelHaven}
-\includegraphics[width=1\textwidth]{image/KernelHaven-Pipeline}
+    \begin{center}
+        \includegraphics<1>[width=.85\linewidth]{image/kernelhaven-pipeline-0.png}
+        \includegraphics<2>[width=.85\linewidth]{image/kernelhaven-pipeline-1.png}
+        \includegraphics<3>[width=.85\linewidth]{image/kernelhaven-pipeline-2.png}
+        \includegraphics<4>[width=.85\linewidth]{image/kernelhaven-pipeline-3.png}
+    \end{center}
+    \cite{KroeherEl-SharkawySchmid18}
 \end{frame}
 
 \begin{frame}[containsverbatim]{Dead Code Analyse - SPL}
@@ -184,7 +194,7 @@ Neu eingef\"uhrte Ver\"anderungen bestimmen, was erneut verarbeitet werden muss.
 \end{enumerate}
 \end{frame}
 
-\begin{frame}{Besondere Anforderungen}
+\begin{frame}{Anforderungen}
 Im Vorfeld wuden Anforderungen an die Implementierung festgelegt.
 Dazu geh\"oren unter anderem:
 \begin{itemize}
@@ -242,7 +252,7 @@ Filter arbeiten auf Basis von folgenden Informationen:
 \end{itemize}
 \end{frame}
 
-\begin{frame}[containsverbatim]{Preparation-Phase - Filtertypen}
+\begin{frame}{Preparation-Phase - Filtertypen}
 
 Jeder Filter gibt eine \emph{Liste von Dateien} zur\"uck, welche f\"ur die Extraktion ber\"ucksichtigt werden.
 
@@ -251,9 +261,11 @@ Code, Build und Variability Dateien werden separat gefiltert.
 Umgesetzte Filter:
 
 \begin{itemize}
-    \item[\textbullet] \texttt{DefaultFilter} 
-    \item[\textbullet] \texttt{ChangeFilter}
-    \item[\textbullet] \texttt{VariabilityChangeFilter}
+    \item[\textbullet] \texttt{DefaultFilter}\\Typ der Datei
+    \pause
+    \item[\textbullet] \texttt{ChangeFilter}\\Typ der Datei, Dateiver\"anderung
+    \pause
+    \item[\textbullet] \texttt{VariabilityChangeFilter}\\Typ der Datei, Variabilit\"atsver\"anderung
 \end{itemize}
 
 \end{frame}
@@ -273,7 +285,7 @@ Umgesetzte Filter:
 
 
 \begin{frame}[containsverbatim]{Inkrementelle Analysen}
-\includegraphics[width=1\textwidth]{image/KernelHavenIncremental.pdf}
+\includegraphics[width=1\textwidth]{image/KernelHavenIncremental-2.pdf}
 \end{frame}
 
 \begin{frame}[containsverbatim]{Post-Extraction-Phase}
@@ -320,11 +332,17 @@ Was leistet der HybridCache?
 \end{itemize}
 \end{frame}
 
+\begin{frame}[containsverbatim]{Inkrementelle Analysen}
+\includegraphics[width=1\textwidth]{image/KernelHavenIncremental-3.pdf}
+\end{frame}
+
+
 \section{Dead Code Analyse}
 \begin{frame}{Dead Code Analyse - Ausgangssituation}
 
 \begin{itemize}
     \item[\textbullet] nicht inkrementelle Variante existiert bereits
+    \pause
     \item[\textbullet] HybridCache ist bei bestehender Implementierung nicht als Input m\"oglich
 \end{itemize}
 \end{frame}
@@ -439,11 +457,15 @@ Inkrementelle Analysen
 \end{itemize}
 Future Work
 \begin{itemize}
-    \item[\textbullet]  partielle Extraktion von Build, Variability Model
+    \item[\textbullet]  partielle Extraktion von Build \& Variability Model
     \item[\textbullet]  Anwendung des Konzeptes auf andere Analysen
 \end{itemize}
 \end{frame}
 
+\begin{frame}{Literatur}
+\bibliography{sources.bib}
+\bibliographystyle{plainnat}
+\end{frame}
 
 
 \end{document}
