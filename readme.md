@@ -8,6 +8,16 @@ The approach presented in this work aims to reduce the computational effort for 
 
 We validated our approach by implementing an incremental dead code analysis and comparing it against a non-incremental dead code analysis as reference. Our results show that the incremental analysis approach offers substantial performance benefits while still providing reliable and consistent results.
 
+```
+Bibtex:
+@MASTERSTHESIS{Flo18,
+  author = {Moritz Fl\"{o}ter},
+  title = {Prototypical Realization and Validation of an Incremental Software Product Line Analysis Approach},
+  school = {University of Hildesheim},
+  year = {2018},
+  type = {Master Thesis}
+}
+```
 ---
 
 *[TLSSP11] Reinhard Tartler, Daniel Lohmann, Julio Sincero, and Wolfgang Schröder-Preikschat. Feature consistency in compile-timeconfigurable system software: Facing the linux 10,000 feature problem. In Proceedings of the Sixth Conference on Computer Systems, EuroSys ’11, pages 47–60, New York, NY, USA, 2011. ACM.*
